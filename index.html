@@ -2,18 +2,27 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>WhatsApp Private Clone</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
     .bg-wa-green { background-color: #008069; }
     .bg-wa-chat { background-color: #efeae2; }
     .bg-wa-bubble-out { background-color: #d9fdd3; }
+    
+    /* Perbaikan tinggi presisi untuk mobile safari/chrome */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
   </style>
 </head>
-<body class="bg-gray-200 h-screen w-screen flex items-center justify-center p-0 md:p-4 font-sans antialiased overflow-hidden">
+<body class="bg-gray-200 flex items-center justify-center font-sans antialiased h-full w-full">
 
   <div id="login-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
     <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
@@ -39,22 +48,22 @@
     </div>
   </div>
 
-  <div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-4">
-    <div class="bg-gray-900 w-full max-w-3xl aspect-video rounded-lg overflow-hidden shadow-2xl relative flex flex-col">
+  <div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-2 md:p-4">
+    <div class="bg-gray-900 w-full h-full md:h-auto md:max-w-3xl md:aspect-video rounded-none md:rounded-lg overflow-hidden shadow-2xl relative flex flex-col">
       <div class="relative w-full flex-grow bg-black flex items-center justify-center overflow-hidden">
         <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-        <video id="local-video" autoplay playsinline muted class="absolute bottom-4 right-4 w-1/4 max-w-[150px] aspect-video rounded-md border-2 border-white object-cover shadow-lg bg-gray-800"></video>
+        <video id="local-video" autoplay playsinline muted class="absolute bottom-4 right-4 w-1/3 max-w-[120px] aspect-video rounded-md border-2 border-white object-cover shadow-lg bg-gray-800"></video>
       </div>
       <div class="bg-gray-800 p-4 flex justify-between items-center text-white shrink-0">
         <div class="flex flex-col">
-          <span id="call-status" class="text-sm font-medium text-emerald-400">Menghubungkan P2P...</span>
-          <span id="call-type" class="text-xs text-gray-400">Panggilan</span>
+          <span id="call-status" class="text-xs md:text-sm font-medium text-emerald-400">Connecting...</span>
+          <span id="call-type" class="text-[10px] md:text-xs text-gray-400">Panggilan</span>
         </div>
         <div class="flex gap-2">
           <button onclick="toggleMuteAudio()" id="btn-mute-audio" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-full w-10 h-10 transition">
             <i class="fa-solid fa-microphone"></i>
           </button>
-          <button onclick="akhiriPanggilan()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+          <button onclick="akhiriPanggilan()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
             <i class="fa-solid fa-phone-slash"></i> Akhiri
           </button>
         </div>
@@ -62,67 +71,73 @@
     </div>
   </div>
 
-  <div id="app-container" class="w-full h-full max-w-6xl bg-white flex rounded-none md:rounded-lg shadow-lg overflow-hidden hidden">
-    <aside class="w-1/3 border-r border-gray-200 flex flex-col bg-white min-w-[280px]">
+  <div id="app-container" class="w-full h-full md:max-w-6xl md:h-[92vh] bg-white flex rounded-none md:rounded-lg shadow-lg overflow-hidden hidden mobile-wrapper">
+    
+    <aside id="sidebar-kontak" class="w-full md:w-1/3 border-r border-gray-200 flex flex-col bg-white h-full shrink-0">
       <div class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold" id="avatar-saya">Y</div>
+          <div class="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm" id="avatar-saya">Y</div>
           <div>
-            <h2 class="font-bold text-sm text-gray-800" id="nama-saya">Memuat...</h2>
-            <p class="text-xs text-emerald-600 font-medium">Online</p>
+            <h2 class="font-bold text-sm text-gray-800 line-clamp-1" id="nama-saya">Memuat...</h2>
+            <p class="text-[11px] text-emerald-600 font-medium">Online</p>
           </div>
         </div>
         <button onclick="logout()" class="text-gray-500 hover:text-red-600 p-2 rounded transition" title="Keluar">
-          <i class="fa-solid fa-right-from-bracket text-lg"></i>
+          <i class="fa-solid fa-right-from-bracket text-base"></i>
         </button>
       </div>
       <div class="flex-grow overflow-y-auto" id="list-kontak">
-        <p class="text-center text-gray-400 text-sm p-4">Memuat daftar kontak...</p>
+        <p class="text-center text-gray-400 text-xs p-4">Memuat daftar kontak...</p>
       </div>
     </aside>
 
-    <main class="w-2/3 flex flex-col bg-wa-chat relative">
-      <div id="no-chat-screen" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-10">
+    <main id="main-chat" class="hidden md:flex w-full md:w-2/3 flex-col bg-wa-chat relative h-full">
+      
+      <div id="no-chat-screen" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-10 hidden md:flex">
         <i class="fa-solid fa-comments text-gray-300 text-7xl mb-4"></i>
         <h3 class="text-xl font-medium text-gray-700">WhatsApp Web Private</h3>
-        <p class="text-gray-500 text-sm mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol.</p>
+        <p class="text-gray-500 text-xs mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol.</p>
       </div>
 
-      <header class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-0">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-lg" id="avatar-target">?</div>
+      <header class="bg-gray-100 px-3 py-3 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 shadow-sm">
+        <div class="flex items-center gap-2">
+          <button onclick="kembaliKeDaftarKontak()" class="block md:hidden text-gray-600 hover:text-emerald-700 pr-1 text-lg">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          
+          <div class="w-9 h-9 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" id="avatar-target">?</div>
           <div>
-            <h2 class="font-bold text-sm text-gray-800" id="nama-target">Nama Kontak</h2>
-            <p class="text-[11px] text-emerald-600">terhubung privat</p>
+            <h2 class="font-bold text-sm text-gray-800 line-clamp-1" id="nama-target">Nama Kontak</h2>
+            <p class="text-[10px] text-emerald-600">terhubung privat</p>
           </div>
         </div>
-        <div class="flex items-center gap-4 text-gray-600 pr-2">
+        
+        <div class="flex items-center gap-4 text-gray-600 pr-1">
           <button onclick="mulaiPanggilan(false)" class="hover:text-emerald-700 transition" title="Panggilan Suara">
-            <i class="fa-solid fa-phone text-lg"></i>
+            <i class="fa-solid fa-phone text-base"></i>
           </button>
           <button onclick="mulaiPanggilan(true)" class="hover:text-emerald-700 transition" title="Panggilan Video">
-            <i class="fa-solid fa-video text-lg"></i>
+            <i class="fa-solid fa-video text-base"></i>
           </button>
         </div>
       </header>
 
-      <div id="chat-box" class="flex-grow overflow-y-auto p-4 space-y-3 flex flex-col"></div>
+      <div id="chat-box" class="flex-grow overflow-y-auto p-4 space-y-3 flex flex-col bg-wa-chat"></div>
 
-      <footer class="bg-gray-100 px-4 py-3 flex items-center gap-3 border-t border-gray-200 shrink-0">
+      <footer class="bg-gray-100 px-3 py-2 flex items-center gap-2 border-t border-gray-200 shrink-0 relative">
         <input type="file" id="input-file" class="hidden" onchange="unggahDanKirimFile(this)">
-        <button onclick="document.getElementById('input-file').click()" id="btn-lampiran" class="text-gray-500 hover:text-emerald-700 transition w-8 h-8 flex items-center justify-center" title="Kirim Foto / File">
-          <i class="fa-solid fa-paperclip text-xl"></i>
+        <button onclick="document.getElementById('input-file').click()" id="btn-lampiran" class="text-gray-500 hover:text-emerald-700 transition w-9 h-9 flex items-center justify-center shrink-0" title="Kirim Berkas">
+          <i class="fa-solid fa-paperclip text-lg"></i>
         </button>
-        <input type="text" id="input-pesan" placeholder="Ketik pesan..." class="flex-grow bg-white py-2 px-4 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm" onkeypress="cekEnter(event)">
-        <button id="btn-kirim" onclick="kirimPesan()" class="bg-wa-green text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-emerald-800 transition">
-          <i class="fa-solid fa-paper-plane text-sm ml-0.5"></i>
+        <input type="text" id="input-pesan" placeholder="Ketik pesan..." class="flex-grow bg-white py-2 px-3 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm" onkeypress="cekEnter(event)">
+        <button id="btn-kirim" onclick="kirimPesan()" class="bg-wa-green text-white w-9 h-9 rounded-full flex items-center justify-center shadow hover:bg-emerald-800 transition shrink-0">
+          <i class="fa-solid fa-paper-plane text-xs ml-0.5"></i>
         </button>
       </footer>
     </main>
   </div>
 
   <script>
-    // ================= PENTING: GANTI DENGAN URL WEB APP GOOGLE SCRIPT ANDA =================
     const API_URL = "https://script.google.com/macros/s/AKfycbyxfwqXaReK8TerSeXz9-LpvhhymTuS5es1ehsqSTTkKqE1_Ia3MW8vCEgF9-wqFxTx/exec";
 
     let akunSaya = "";
@@ -141,18 +156,16 @@
       ]
     };
 
-    // Fungsi Jembatan Pengganti google.script.run menggunakan Fetch API
     async function panggilAPI(fungsi, parameterArray) {
       try {
         const response = await fetch(API_URL, {
           method: "POST",
-          mode: "cors",
           body: JSON.stringify({ fungsi: fungsi, args: parameterArray })
         });
         return await response.json();
       } catch (err) {
-        console.error("API Error (" + fungsi + "):", err);
-        return { status: "gagal", pesan: "Gagal terhubung ke server cloud." };
+        console.error("API Error:", err);
+        return { status: "gagal" };
       }
     }
 
@@ -197,8 +210,7 @@
       kontakAktif = "";
       document.getElementById('login-user').value = "";
       document.getElementById('login-pass').value = "";
-      document.getElementById('login-error').classList.add('hidden');
-      document.getElementById('no-chat-screen').classList.remove('hidden');
+      kembaliKeDaftarKontak();
       document.getElementById('app-container').classList.add('hidden');
       document.getElementById('login-modal').classList.remove('hidden');
     }
@@ -229,25 +241,43 @@
       daftarKontak.forEach(nama => {
         const item = document.createElement('div');
         const isAktif = nama === kontakAktif;
-        item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-200' : 'hover:bg-gray-50'}`;
+        item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-100' : 'hover:bg-gray-50'}`;
         item.onclick = () => pilihKontakMembukaChat(nama);
         item.innerHTML = `
-          <div class="w-11 h-11 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">${nama.charAt(0).toUpperCase()}</div>
-          <div class="flex-grow">
-            <h4 class="font-semibold text-sm text-gray-800">${nama}</h4>
+          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">${nama.charAt(0).toUpperCase()}</div>
+          <div class="flex-grow overflow-hidden">
+            <h4 class="font-semibold text-sm text-gray-800 truncate">${nama}</h4>
             <p class="text-xs text-gray-400 truncate">Klik untuk chat pribadi...</p>
           </div>`;
         listEl.appendChild(item);
       });
     }
 
+    // Navigasi Masuk Room Chat (Presisi Mobile)
     function pilihKontakMembukaChat(namaTarget) {
       kontakAktif = namaTarget;
       document.getElementById('nama-target').innerText = kontakAktif;
       document.getElementById('avatar-target').innerText = kontakAktif.charAt(0).toUpperCase();
-      document.getElementById('no-chat-screen').classList.add('hidden');
+      
+      // Logika Toggle View Layar Mobile
+      document.getElementById('sidebar-kontak').classList.add('hidden', 'md:flex');
+      const mainChat = document.getElementById('main-chat');
+      mainChat.classList.remove('hidden');
+      mainChat.classList.add('flex');
+
+      const noChatScreen = document.getElementById('no-chat-screen');
+      if(noChatScreen) noChatScreen.classList.add('md:hidden');
+
       muatPesanChat(true);
-      refreshDaftarKontak();
+    }
+
+    // Navigasi Kembali ke List Kontak (Presisi Mobile)
+    function kembaliKeDaftarKontak() {
+      kontakAktif = "";
+      document.getElementById('sidebar-kontak').classList.remove('hidden');
+      const mainChat = document.getElementById('main-chat');
+      mainChat.classList.add('hidden');
+      mainChat.classList.remove('flex');
     }
 
     async function muatPesanChat(forceScroll) {
@@ -258,7 +288,7 @@
 
     function renderPesan(daftarPesan, forceScroll) {
       const chatBox = document.getElementById('chat-box');
-      const isScrolled = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 60;
+      const isScrolled = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 80;
       chatBox.innerHTML = "";
 
       daftarPesan.forEach(msg => {
@@ -282,22 +312,22 @@
         wrapper.className = `flex w-full group ${sayaYangKirim ? 'justify-end' : 'justify-start'}`;
 
         const bubble = document.createElement('div');
-        bubble.className = `max-w-[75%] rounded-lg p-2 shadow-sm text-sm relative ${sayaYangKirim ? 'bg-wa-bubble-out rounded-tr-none' : 'bg-white rounded-tl-none'}`;
+        bubble.className = `max-w-[85%] md:max-w-[75%] rounded-lg p-2 shadow-sm text-sm relative ${sayaYangKirim ? 'bg-wa-bubble-out rounded-tr-none' : 'bg-white rounded-tl-none'}`;
 
         let isiKonten = "";
         if (msg.teks.startsWith("https://drive.google.com/")) {
           const namaFileKecil = msg.teks.toLowerCase();
           const apakahGambar = [".jpg", ".jpeg", ".png", ".gif", ".webp"].some(ext => namaFileKecil.includes(ext));
           if (apakahGambar) {
-            isiKonten = `<div class="mb-1"><img src="${msg.teks}" class="max-w-xs max-h-48 rounded shadow-sm object-cover bg-gray-100" alt="Foto"></div><a href="${msg.teks}" target="_blank" class="text-blue-600 hover:underline font-medium text-xs block mt-1"><i class="fa-solid fa-download mr-1"></i> Unduh Foto asli</a>`;
+            isiKonten = `<div class="mb-1"><img src="${msg.teks}" class="max-w-full max-h-48 rounded shadow-sm object-cover bg-gray-100" alt="Foto"></div><a href="${msg.teks}" target="_blank" class="text-blue-600 hover:underline font-medium text-xs block mt-1"><i class="fa-solid fa-download mr-1"></i> Unduh Foto</a>`;
           } else {
-            isiKonten = `<div class="flex items-center gap-3 bg-black/5 p-2 rounded border border-black/10 mb-1"><i class="fa-solid fa-file-lines text-gray-500 text-2xl"></i><div class="overflow-hidden"><p class="text-xs font-semibold text-gray-700 truncate max-w-[150px]">Berkas Dokumen</p><a href="${msg.teks}" target="_blank" class="text-emerald-700 hover:underline text-xs font-bold block"><i class="fa-solid fa-circle-arrow-down mr-0.5"></i> Download File</a></div></div>`;
+            isiKonten = `<div class="flex items-center gap-2 bg-black/5 p-2 rounded border border-black/10 mb-1"><i class="fa-solid fa-file-lines text-gray-500 text-xl"></i><div class="overflow-hidden"><p class="text-xs font-semibold text-gray-700 truncate max-w-[130px]">File Dokumen</p><a href="${msg.teks}" target="_blank" class="text-emerald-700 hover:underline text-[11px] font-bold block">Download</a></div></div>`;
           }
         } else if (msg.teks.startsWith("CALL_INVITE:")) {
           const isVideo = msg.teks.includes("|true");
-          isiKonten = `<p class="italic text-gray-600 flex items-center gap-1.5 text-xs"><i class="fa-solid ${isVideo ? 'fa-video' : 'fa-phone'}"></i> Panggilan ${isVideo ? 'Video' : 'Suara'} dimulai</p>`;
+          isiKonten = `<p class="italic text-gray-500 flex items-center gap-1 text-xs"><i class="fa-solid ${isVideo ? 'fa-video' : 'fa-phone'}"></i> Panggilan ${isVideo ? 'Video' : 'Suara'}</p>`;
         } else {
-          isiKonten = `<p class="pr-12 break-words">${msg.teks}</p>`;
+          isiKonten = `<p class="pr-10 break-words">${msg.teks}</p>`;
         }
 
         const formatJamSaja = msg.waktu ? msg.waktu.substring(0, 5) : "--:--";
@@ -305,7 +335,7 @@
         let tombolHapusHtml = "";
         if (sayaYangKirim && !msg.teks.startsWith("CALL_INVITE:")) {
           const teksAmanB64 = btoa(unescape(encodeURIComponent(msg.teks)));
-          tombolHapusHtml = `<button onclick="prosesHapusPesan('${msg.pengirim}', '${msg.penerima}', '${teksAmanB64}', '${msg.waktu}')" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 absolute top-1 right-1 text-xs p-1 transition-opacity duration-200" title="Hapus pesan"><i class="fa-solid fa-trash-can"></i></button>`;
+          tombolHapusHtml = `<button onclick="prosesHapusPesan('${msg.pengirim}', '${msg.penerima}', '${teksAmanB64}', '${msg.waktu}')" class="opacity-0 group-hover:opacity-100 md:opacity-0 text-gray-400 hover:text-red-500 absolute top-1 right-1 text-xs p-1 transition-opacity duration-200" title="Hapus"><i class="fa-solid fa-trash-can"></i></button>`;
         }
 
         bubble.innerHTML = `${tombolHapusHtml}${isiKonten}<span class="absolute bottom-0.5 right-1.5 text-[9px] text-gray-400 flex items-center gap-0.5 ml-4">${formatJamSaja}${sayaYangKirim ? '<i class="fa-solid fa-check-double text-sky-500"></i>' : ''}</span>`;
@@ -330,7 +360,7 @@
 
       document.getElementById('call-modal').classList.remove('hidden');
       document.getElementById('call-type').innerText = denganVideo ? "Panggilan Video P2P" : "Panggilan Suara P2P";
-      document.getElementById('call-status').innerText = "Memanggil " + kontakAktif + "...";
+      document.getElementById('call-status').innerText = "Memanggil...";
 
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: denganVideo, audio: true });
@@ -379,7 +409,7 @@
         const remoteVideo = document.getElementById('remote-video');
         if (remoteVideo.srcObject !== event.streams[0]) {
           remoteVideo.srcObject = event.streams[0];
-          document.getElementById('call-status').innerText = "Terhubung (Peer-to-Peer)";
+          document.getElementById('call-status').innerText = "Terhubung";
         }
       };
 
@@ -488,7 +518,7 @@
       reader.onload = async function(e) {
         const dataB64 = e.target.result.split(',')[1];
         const linkDrive = await panggilAPI("simpanFileKeDrive", [akunSaya, kontakAktif, dataB64, file.name, file.type]);
-        ClipBtn.innerHTML = `<i class="fa-solid fa-paperclip text-xl"></i>`;
+        ClipBtn.innerHTML = `<i class="fa-solid fa-paperclip text-lg"></i>`;
         ClipBtn.disabled = false;
         inputElement.value = "";
         if (linkDrive !== "Gagal") muatPesanChat(true);
