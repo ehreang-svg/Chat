@@ -13,7 +13,6 @@
     .bg-wa-chat { background-color: #efeae2; }
     .bg-wa-bubble-out { background-color: #d9fdd3; }
     
-    /* Perbaikan tinggi presisi untuk mobile safari/chrome */
     html, body {
       height: 100%;
       margin: 0;
@@ -108,7 +107,7 @@
           <div class="w-9 h-9 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" id="avatar-target">?</div>
           <div>
             <h2 class="font-bold text-sm text-gray-800 line-clamp-1" id="nama-target">Nama Kontak</h2>
-            <p class="text-[10px] text-emerald-600">terhubung privat</p>
+            <p class="text-[10px] text-gray-400">Offline</p>
           </div>
         </div>
         
@@ -218,21 +217,24 @@
     async function loopDataOtomatis() {
       if (!akunSaya) return;
       
-      // Kirim sinyal ping ke server bahwa kita sedang aktif/online
-      panggilAPI("perbaruiStatusOnline", [akunSaya]);
-      
-      refreshDaftarKontak();
-      
-      if (kontakAktif !== "") {
-        muatPesanChat(false);
-      }
-      if (sedangDalamPanggilan) {
-        cekSinyalBalasanMasuk();
+      try {
+        await panggilAPI("perbaruiStatusOnline", [akunSaya]);
+        await refreshDaftarKontak();
+        
+        if (kontakAktif !== "") {
+          await muatPesanChat(false);
+          cekSinyalPanggilanMasukSecaraBerkala();
+        }
+        
+        if (sedangDalamPanggilan) {
+          cekSinyalBalasanMasuk();
+        }
+      } catch (e) {
+        console.error("Error di loop otomatis:", e);
       }
     }
 
     async function refreshDaftarKontak() {
-      // Sekarang API mengembalikan Array of Object [{nama, online, terakhirAktivitas}]
       const daftar = await panggilAPI("ambilKontak", [akunSaya]);
       renderKontak(daftar || []);
     }
@@ -249,7 +251,6 @@
         const item = document.createElement('div');
         const isAktif = user.nama === kontakAktif;
         
-        // Indikator Titik Hijau / Abu-abu untuk status online
         const badgeStatus = user.online 
           ? `<span class="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white block absolute bottom-0 right-0"></span>`
           : `<span class="w-2.5 h-2.5 bg-gray-400 rounded-full border border-white block absolute bottom-0 right-0"></span>`;
@@ -258,7 +259,6 @@
           ? `<span class="text-xs text-emerald-600 font-medium">Online</span>` 
           : `<span class="text-xs text-gray-400">Offline</span>`;
 
-        // Update status sub-header chat secara real-time jika kontak ini sedang kita buka
         if (isAktif) {
           const subHeader = document.querySelector("#main-chat header p");
           if (subHeader) {
@@ -289,7 +289,6 @@
       document.getElementById('nama-target').innerText = kontakAktif;
       document.getElementById('avatar-target').innerText = kontakAktif.charAt(0).toUpperCase();
       
-      // Mengatur sub-header nama di room chat awal
       const subHeader = document.querySelector("#main-chat header p");
       if (subHeader) {
         subHeader.innerText = apakahOnline ? "Online" : "Offline";
@@ -313,7 +312,6 @@
       renderPesan(dataPesan || [], forceScroll);
     }
 
-    // Navigasi Kembali ke List Kontak (Presisi Mobile)
     function kembaliKeDaftarKontak() {
       kontakAktif = "";
       document.getElementById('sidebar-kontak').classList.remove('hidden');
@@ -322,6 +320,36 @@
       mainChat.classList.remove('flex');
     }
 
+    function cekSinyalPanggilanMasukSecaraBerkala() {
+      if (kontakAktif === "" || sedangDalamPanggilan) return;
+
+      panggilAPI("ambilPesanPribadi", [kontakAktif, akunSaya]).then(dataPesan => {
+        if (!dataPesan || !Array.isArray(dataPesan)) return;
+        
+        const msgTerakhir = dataPesan[dataPesan.length - 1];
+        if (!msgTerakhir) return;
+
+        if (msgTerakhir.teks.startsWith("CALL_INVITE:") && msgTerakhir.pengirim.toLowerCase() === kontakAktif.toLowerCase()) {
+          
+          if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
+          const idPanggilanUnik = msgTerakhir.pengirim + "_" + msgTerakhir.waktu;
+          
+          if (!window.panggilanTerlewati.includes(idPanggilanUnik)) {
+            const detailPanggilan = msgTerakhir.teks.split("|");
+            const pakeVideo = detailPanggilan[2] === "true";
+            
+            sedangDalamPanggilan = true;
+            window.panggilanTerlewati.push(idPanggilanUnik);
+
+            if (confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msgTerakhir.pengirim}?`)) {
+              terimaPanggilanWebRTC(msgTerakhir.pengirim, pakeVideo);
+            } else {
+              akhiriPanggilan();
+            }
+          }
+        }
+      });
+    }
 
     function renderPesan(daftarPesan, forceScroll) {
       const chatBox = document.getElementById('chat-box');
@@ -332,50 +360,6 @@
         if (msg.teks === "[PESAN_DIHAPUS]") return;
         const sayaYangKirim = msg.pengirim.toLowerCase() === akunSaya.toLowerCase();
         
-        // ====================================================================
-        // PERBAIKAN: Proteksi agar Pop-up Panggilan Masuk Tidak Muncul Terus
-        // ====================================================================
-        if (msg.teks.startsWith("CALL_INVITE:") && !sayaYangKirim && !sedangDalamPanggilan) {
-          
-          // Ambil waktu pesan dikirim (Asumsi format dari backend adalah objek date atau string waktu)
-          // Kita proteksi menggunakan batasan waktu: Hanya terima jika pesan berumur kurang dari 12 detik
-          let waktuPesanValid = true;
-          
-          if (msg.timestamp) { // Jika backend mengirimkan UNIX timestamp (milidetik)
-            const waktuSekarang = new Date().getTime();
-            if (waktuSekarang - msg.timestamp > 12000) { 
-              waktuPesanValid = false; // Abaikan jika undangan telepon sudah kadaluarsa (lebih dari 12 detik)
-            }
-          } else if (msg.waktu) {
-            // Pengaman alternatif jika hanya ada string "HH:mm"
-            // Mengingat presisi menit, kita buat batasan logis di tingkat client menggunakan state session global
-            if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
-            const idPanggilanUnik = msg.pengirim + "_" + msg.waktu;
-            
-            if (window.panggilanTerlewati.includes(idPanggilanUnik)) {
-              waktuPesanValid = false; // Sudah pernah ditolak/diakhiri sebelumnya
-            }
-          }
-
-          if (waktuPesanValid) {
-            const detailPanggilan = msg.teks.split("|");
-            const pakeVideo = detailPanggilan[2] === "true";
-            sedangDalamPanggilan = true;
-            
-            // Simpan ID panggilan agar tidak berulang memicu konfirmasi yang sama
-            if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
-            const idCall = msg.pengirim + "_" + (msg.waktu || "");
-            window.panggilanTerlewati.push(idCall);
-
-            if (confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msg.pengirim}?`)) {
-              terimaPanggilanWebRTC(msg.pengirim, pakeVideo);
-            } else {
-              akhiriPanggilan(); // Kirim sinyal END jika ditolak
-            }
-          }
-        }
-        // ====================================================================
-
         if (msg.teks.startsWith("WEBRTC_SIGNAL:")) return;
 
         const wrapper = document.createElement('div');
@@ -529,37 +513,16 @@
       }
     }
 
-// 1. MODIFIKASI FUNGSI AKHIRI PANGGILAN
     async function akhiriPanggilan() {
-      // Jika kita yang menekan tombol "Akhiri", kirim sinyal END ke lawan bicara
       if (sedangDalamPanggilan && kontakAktif !== "") {
         panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "END", JSON.stringify({ aksi: "close" })]);
       }
-
-      sedangDalamPanggilan = false; // Kunci agar loop data tidak membaca panggilan aktif lagi
-      iceCandidatesAntrian = [];
-      
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-
-      document.getElementById('remote-video').srcObject = null;
-      document.getElementById('local-video').srcObject = null;
-      document.getElementById('call-modal').classList.add('hidden');
+      akhiriPanggilanMurniTanpaSinyal();
     }
 
-    // 2. PERBARUI FUNGSI CEK SINYAL UNTUK MENDENGARKAN SINYAL "ANSWER" DAN "END"
-    // PERBAIKAN TOTAL: Anti-Error TypeError 'setRemoteDescription' akibat Async Race Condition
     function cekSinyalBalasanMasuk() {
-      // Guard 1: Jika dari awal memang sudah mati, langsung batalkan proses
       if (!sedangDalamPanggilan || !peerConnection) return;
 
-      // 1. Pantau jika ada sinyal END masuk dari lawan bicara
       ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "END", (dataEnd) => {
         if (dataEnd && sedangDalamPanggilan) {
           console.log("Lawan bicara memutuskan panggilan.");
@@ -567,16 +530,11 @@
         }
       });
 
-      // Guard 2: Cek ulang sebelum membaca status signalingState
       if (!peerConnection) return;
 
-      // 2. Jika kita penelpon dan remote belum diset, cari sinyal ANSWER
       if (peerConnection.signalingState === "have-local-offer") {
         ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
-          // Guard 3: Verifikasi instan SEBELUM eksekusi (menghalau delay dari fungsi ambilSinyalTerakhirDariSheet)
           if (!dataAnswer || !peerConnection || !sedangDalamPanggilan) return;
-          
-          // Guard 4: Proteksi ganda tepat sebelum memanggil setRemoteDescription
           if (peerConnection.signalingState !== "have-local-offer") return;
           
           try {
@@ -590,7 +548,6 @@
       }
     }
 
-    // Fungsi pembantu baru agar tidak terjadi looping pengiriman sinyal END
     function akhiriPanggilanMurniTanpaSinyal() {
       sedangDalamPanggilan = false;
       iceCandidatesAntrian = [];
@@ -601,7 +558,7 @@
       }
       if (peerConnection) {
         peerConnection.close();
-        peerConnection = null; // Di sini dialihkan menjadi null dengan aman
+        peerConnection = null;
       }
 
       document.getElementById('remote-video').srcObject = null;
