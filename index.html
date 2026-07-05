@@ -485,8 +485,9 @@
     }
 
     // 2. PERBARUI FUNGSI CEK SINYAL UNTUK MENDENGARKAN SINYAL "ANSWER" DAN "END"
+    // PERBAIKAN TOTAL: Anti-Error TypeError 'setRemoteDescription' akibat Async Race Condition
     function cekSinyalBalasanMasuk() {
-      // Guard 1: Jika panggilan sudah mati atau peerConnection belum dibuat, stop!
+      // Guard 1: Jika dari awal memang sudah mati, langsung batalkan proses
       if (!sedangDalamPanggilan || !peerConnection) return;
 
       // 1. Pantau jika ada sinyal END masuk dari lawan bicara
@@ -497,21 +498,24 @@
         }
       });
 
-      // Guard 2: Cek ulang sebelum masuk ke logika ANSWER (mencegah error akibat async delay)
+      // Guard 2: Cek ulang sebelum membaca status signalingState
       if (!peerConnection) return;
 
       // 2. Jika kita penelpon dan remote belum diset, cari sinyal ANSWER
       if (peerConnection.signalingState === "have-local-offer") {
         ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
-          // Guard 3: Pastikan peerConnection belum di-null-kan oleh sinyal END selama proses fetch
-          if (!peerConnection || !sedangDalamPanggilan) return;
+          // Guard 3: Verifikasi instan SEBELUM eksekusi (menghalau delay dari fungsi ambilSinyalTerakhirDariSheet)
+          if (!dataAnswer || !peerConnection || !sedangDalamPanggilan) return;
+          
+          // Guard 4: Proteksi ganda tepat sebelum memanggil setRemoteDescription
+          if (peerConnection.signalingState !== "have-local-offer") return;
           
           try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
             prosesAntrianIce();
             DengarkanSinyalIceBerkala(kontakAktif);
           } catch (err) {
-            console.error("Gagal setRemoteDescription:", err);
+            console.warn("Sinyal ANSWER diabaikan atau penutupan berbarengan: ", err.message);
           }
         });
       }
