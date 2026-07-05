@@ -5,7 +5,6 @@
   <title>WhatsApp Private Clone</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://8x8.vc/vpaas-magic-cookie-391494e8fc6d44cca82ee0a9cf13998b/external_api.js"></script>
   <style>
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
@@ -40,15 +39,12 @@
     </div>
   </div>
 
-<div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-4">
+  <div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-4">
     <div class="bg-gray-900 w-full max-w-3xl aspect-video rounded-lg overflow-hidden shadow-2xl relative flex flex-col">
-      
       <div class="relative w-full flex-grow bg-black flex items-center justify-center overflow-hidden">
         <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
-        
         <video id="local-video" autoplay playsinline muted class="absolute bottom-4 right-4 w-1/4 max-w-[150px] aspect-video rounded-md border-2 border-white object-cover shadow-lg bg-gray-800"></video>
       </div>
-
       <div class="bg-gray-800 p-4 flex justify-between items-center text-white shrink-0">
         <div class="flex flex-col">
           <span id="call-status" class="text-sm font-medium text-emerald-400">Menghubungkan P2P...</span>
@@ -67,13 +63,10 @@
   </div>
 
   <div id="app-container" class="w-full h-full max-w-6xl bg-white flex rounded-none md:rounded-lg shadow-lg overflow-hidden hidden">
-    
     <aside class="w-1/3 border-r border-gray-200 flex flex-col bg-white min-w-[280px]">
       <div class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold" id="avatar-saya">
-            Y
-          </div>
+          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold" id="avatar-saya">Y</div>
           <div>
             <h2 class="font-bold text-sm text-gray-800" id="nama-saya">Memuat...</h2>
             <p class="text-xs text-emerald-600 font-medium">Online</p>
@@ -83,31 +76,26 @@
           <i class="fa-solid fa-right-from-bracket text-lg"></i>
         </button>
       </div>
-      
       <div class="flex-grow overflow-y-auto" id="list-kontak">
         <p class="text-center text-gray-400 text-sm p-4">Memuat daftar kontak...</p>
       </div>
     </aside>
 
     <main class="w-2/3 flex flex-col bg-wa-chat relative">
-      
       <div id="no-chat-screen" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-10">
         <i class="fa-solid fa-comments text-gray-300 text-7xl mb-4"></i>
         <h3 class="text-xl font-medium text-gray-700">WhatsApp Web Private</h3>
-        <p class="text-gray-500 text-sm mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol, mengirim berkas atau menelepon.</p>
+        <p class="text-gray-500 text-sm mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol.</p>
       </div>
 
       <header class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-lg" id="avatar-target">
-            ?
-          </div>
+          <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-lg" id="avatar-target">?</div>
           <div>
             <h2 class="font-bold text-sm text-gray-800" id="nama-target">Nama Kontak</h2>
             <p class="text-[11px] text-emerald-600">terhubung privat</p>
           </div>
         </div>
-        
         <div class="flex items-center gap-4 text-gray-600 pr-2">
           <button onclick="mulaiPanggilan(false)" class="hover:text-emerald-700 transition" title="Panggilan Suara">
             <i class="fa-solid fa-phone text-lg"></i>
@@ -125,26 +113,50 @@
         <button onclick="document.getElementById('input-file').click()" id="btn-lampiran" class="text-gray-500 hover:text-emerald-700 transition w-8 h-8 flex items-center justify-center" title="Kirim Foto / File">
           <i class="fa-solid fa-paperclip text-xl"></i>
         </button>
-
-        <input type="text" id="input-pesan" placeholder="Ketik pesan..." 
-          class="flex-grow bg-white py-2 px-4 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm"
-          onkeypress="cekEnter(event)">
-          
+        <input type="text" id="input-pesan" placeholder="Ketik pesan..." class="flex-grow bg-white py-2 px-4 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm" onkeypress="cekEnter(event)">
         <button id="btn-kirim" onclick="kirimPesan()" class="bg-wa-green text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-emerald-800 transition">
           <i class="fa-solid fa-paper-plane text-sm ml-0.5"></i>
         </button>
       </footer>
-
     </main>
   </div>
 
   <script>
+    // ================= PENTING: GANTI DENGAN URL WEB APP GOOGLE SCRIPT ANDA =================
+    const API_URL = "https://script.google.com/macros/s/AKfyf...MASUKKAN_ID_WEB_APP_ANDA.../exec";
+
     let akunSaya = "";
     let kontakAktif = "";
     let intervalOtomatis = null;
-    let jitsiApi = null;
+    let peerConnection = null;
+    let localStream = null;
+    let sedangDalamPanggilan = false;
+    let jenisPanggilanGlobal = "video"; 
+    let iceCandidatesAntrian = [];
 
-    function prosesLogin() {
+    const konfigurasiRTC = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // Fungsi Jembatan Pengganti google.script.run menggunakan Fetch API
+    async function panggilAPI(fungsi, parameterArray) {
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          mode: "cors",
+          body: JSON.stringify({ fungsi: fungsi, args: parameterArray })
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("API Error (" + fungsi + "):", err);
+        return { status: "gagal", pesan: "Gagal terhubung ke server cloud." };
+      }
+    }
+
+    async function prosesLogin() {
       const user = document.getElementById('login-user').value.trim();
       const pass = document.getElementById('login-pass').value.trim();
       const errorEl = document.getElementById('login-error');
@@ -160,26 +172,23 @@
       btn.disabled = true;
       btn.innerText = "Memverifikasi...";
 
-      google.script.run.withSuccessHandler(function(respon) {
-        btn.disabled = false;
-        btn.innerText = "Masuk / Daftar";
+      const respon = await panggilAPI("loginUser", [user, pass]);
+      btn.disabled = false;
+      btn.innerText = "Masuk / Daftar";
 
-        if (respon.status === "sukses") {
-          akunSaya = respon.username;
-          
-          document.getElementById('login-modal').classList.add('hidden');
-          document.getElementById('app-container').classList.remove('hidden');
-          
-          document.getElementById('nama-saya').innerText = akunSaya;
-          document.getElementById('avatar-saya').innerText = akunSaya.charAt(0).toUpperCase();
+      if (respon && respon.status === "sukses") {
+        akunSaya = respon.username;
+        document.getElementById('login-modal').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        document.getElementById('nama-saya').innerText = akunSaya;
+        document.getElementById('avatar-saya').innerText = akunSaya.charAt(0).toUpperCase();
 
-          refreshDaftarKontak();
-          intervalOtomatis = setInterval(loopDataOtomatis, 3000);
-        } else {
-          errorEl.innerText = respon.pesan;
-          errorEl.classList.remove('hidden');
-        }
-      }).loginUser(user, pass);
+        refreshDaftarKontak();
+        intervalOtomatis = setInterval(loopDataOtomatis, 3000);
+      } else {
+        errorEl.innerText = respon.pesan || "Terjadi kesalahan.";
+        errorEl.classList.remove('hidden');
+      }
     }
 
     function logout() {
@@ -194,50 +203,40 @@
       document.getElementById('login-modal').classList.remove('hidden');
     }
 
-function loopDataOtomatis() {
+    async function loopDataOtomatis() {
       if (!akunSaya) return;
       refreshDaftarKontak();
       if (kontakAktif !== "") {
         muatPesanChat(false);
       }
-      // TAMBAHKAN BARIS INI: Cek sinyal rute WebRTC jika sedang menelepon
       if (sedangDalamPanggilan) {
         cekSinyalBalasanMasuk();
       }
     }
 
-    function refreshDaftarKontak() {
-      google.script.run.withSuccessHandler(renderKontak).ambilKontak(akunSaya);
+    async function refreshDaftarKontak() {
+      const daftar = await panggilAPI("ambilKontak", [akunSaya]);
+      renderKontak(daftar || []);
     }
 
     function renderKontak(daftarKontak) {
       const listEl = document.getElementById('list-kontak');
       listEl.innerHTML = "";
-      
       if (daftarKontak.length === 0) {
         listEl.innerHTML = `<p class="text-center text-gray-400 text-xs p-4">Belum ada user lain terdaftar.</p>`;
         return;
       }
-
       daftarKontak.forEach(nama => {
         const item = document.createElement('div');
         const isAktif = nama === kontakAktif;
-        
-        item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${
-          isAktif ? 'bg-gray-200' : 'hover:bg-gray-50'
-        }`;
-        
+        item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-200' : 'hover:bg-gray-50'}`;
         item.onclick = () => pilihKontakMembukaChat(nama);
-        
         item.innerHTML = `
-          <div class="w-11 h-11 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
-            ${nama.charAt(0).toUpperCase()}
-          </div>
+          <div class="w-11 h-11 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">${nama.charAt(0).toUpperCase()}</div>
           <div class="flex-grow">
             <h4 class="font-semibold text-sm text-gray-800">${nama}</h4>
             <p class="text-xs text-gray-400 truncate">Klik untuk chat pribadi...</p>
-          </div>
-        `;
+          </div>`;
         listEl.appendChild(item);
       });
     }
@@ -251,31 +250,25 @@ function loopDataOtomatis() {
       refreshDaftarKontak();
     }
 
-    function muatPesanChat(forceScroll) {
+    async function muatPesanChat(forceScroll) {
       if (kontakAktif === "") return;
-      google.script.run.withSuccessHandler(function(dataPesan) {
-        renderPesan(dataPesan, forceScroll);
-      }).ambilPesanPribadi(akunSaya, kontakAktif);
+      const dataPesan = await panggilAPI("ambilPesanPribadi", [akunSaya, kontakAktif]);
+      renderPesan(dataPesan || [], forceScroll);
     }
 
     function renderPesan(daftarPesan, forceScroll) {
       const chatBox = document.getElementById('chat-box');
       const isScrolled = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 60;
-      
       chatBox.innerHTML = "";
 
       daftarPesan.forEach(msg => {
-        // JIKA PESAN SUDAH DIHAPUS, JANGAN DI-RENDER/DITAMPILKAN
         if (msg.teks === "[PESAN_DIHAPUS]") return;
-
         const sayaYangKirim = msg.pengirim.toLowerCase() === akunSaya.toLowerCase();
         
-        // FITUR DETEKSI TELEPON MASUK WEBRTC
         if (msg.teks.startsWith("CALL_INVITE:") && !sayaYangKirim && !sedangDalamPanggilan) {
           const detailPanggilan = msg.teks.split("|");
           const pakeVideo = detailPanggilan[2] === "true";
-          
-          sedangDalamPanggilan = true; // Kunci agar tidak muncul confirm berkali-kali
+          sedangDalamPanggilan = true;
           if(confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msg.pengirim}?`)) {
             terimaPanggilanWebRTC(msg.pengirim, pakeVideo);
           } else {
@@ -283,119 +276,53 @@ function loopDataOtomatis() {
           }
         }
 
-        // Menyembunyikan log sinyal WebRTC mentah agar tidak mengotori chat box
         if (msg.teks.startsWith("WEBRTC_SIGNAL:")) return;
 
         const wrapper = document.createElement('div');
         wrapper.className = `flex w-full group ${sayaYangKirim ? 'justify-end' : 'justify-start'}`;
 
         const bubble = document.createElement('div');
-        bubble.className = `max-w-[75%] rounded-lg p-2 shadow-sm text-sm relative ${
-          sayaYangKirim ? 'bg-wa-bubble-out rounded-tr-none' : 'bg-white rounded-tl-none'
-        }`;
+        bubble.className = `max-w-[75%] rounded-lg p-2 shadow-sm text-sm relative ${sayaYangKirim ? 'bg-wa-bubble-out rounded-tr-none' : 'bg-white rounded-tl-none'}`;
 
         let isiKonten = "";
-        
         if (msg.teks.startsWith("https://drive.google.com/")) {
           const namaFileKecil = msg.teks.toLowerCase();
-          const apakahGambar = namaFileKecil.includes(".jpg") || namaFileKecil.includes(".jpeg") || 
-                               namaFileKecil.includes(".png") || namaFileKecil.includes(".gif") || 
-                               namaFileKecil.includes(".webp");
-          
+          const apakahGambar = [".jpg", ".jpeg", ".png", ".gif", ".webp"].some(ext => namaFileKecil.includes(ext));
           if (apakahGambar) {
-            isiKonten = `
-              <div class="mb-1">
-                <img src="${msg.teks}" class="max-w-xs max-h-48 rounded shadow-sm object-cover bg-gray-100" alt="Foto">
-              </div>
-              <a href="${msg.teks}" target="_blank" class="text-blue-600 hover:underline font-medium text-xs block mt-1">
-                <i class="fa-solid fa-download mr-1"></i> Unduh Foto asli
-              </a>`;
+            isiKonten = `<div class="mb-1"><img src="${msg.teks}" class="max-w-xs max-h-48 rounded shadow-sm object-cover bg-gray-100" alt="Foto"></div><a href="${msg.teks}" target="_blank" class="text-blue-600 hover:underline font-medium text-xs block mt-1"><i class="fa-solid fa-download mr-1"></i> Unduh Foto asli</a>`;
           } else {
-            isiKonten = `
-              <div class="flex items-center gap-3 bg-black/5 p-2 rounded border border-black/10 mb-1">
-                <i class="fa-solid fa-file-lines text-gray-500 text-2xl"></i>
-                <div class="overflow-hidden">
-                  <p class="text-xs font-semibold text-gray-700 truncate max-w-[150px]">Berkas Dokumen</p>
-                  <a href="${msg.teks}" target="_blank" class="text-emerald-700 hover:underline text-xs font-bold block">
-                    <i class="fa-solid fa-circle-arrow-down mr-0.5"></i> Download File
-                  </a>
-                </div>
-              </div>`;
+            isiKonten = `<div class="flex items-center gap-3 bg-black/5 p-2 rounded border border-black/10 mb-1"><i class="fa-solid fa-file-lines text-gray-500 text-2xl"></i><div class="overflow-hidden"><p class="text-xs font-semibold text-gray-700 truncate max-w-[150px]">Berkas Dokumen</p><a href="${msg.teks}" target="_blank" class="text-emerald-700 hover:underline text-xs font-bold block"><i class="fa-solid fa-circle-arrow-down mr-0.5"></i> Download File</a></div></div>`;
           }
         } else if (msg.teks.startsWith("CALL_INVITE:")) {
           const isVideo = msg.teks.includes("|true");
-          isiKonten = `<p class="italic text-gray-600 flex items-center gap-1.5 text-xs">
-            <i class="fa-solid ${isVideo ? 'fa-video' : 'fa-phone'}"></i> Panggilan ${isVideo ? 'Video' : 'Suara'} dimulai
-          </p>`;
+          isiKonten = `<p class="italic text-gray-600 flex items-center gap-1.5 text-xs"><i class="fa-solid ${isVideo ? 'fa-video' : 'fa-phone'}"></i> Panggilan ${isVideo ? 'Video' : 'Suara'} dimulai</p>`;
         } else {
           isiKonten = `<p class="pr-12 break-words">${msg.teks}</p>`;
         }
 
         const formatJamSaja = msg.waktu ? msg.waktu.substring(0, 5) : "--:--";
 
-        // Tombol aksi hapus (hanya muncul di pesan kita sendiri saat di-hover/group-hover)
         let tombolHapusHtml = "";
         if (sayaYangKirim && !msg.teks.startsWith("CALL_INVITE:")) {
-          // Mengirimkan parameter teks dalam bentuk base64 agar aman dari karakter petik/error javascript string
           const teksAmanB64 = btoa(unescape(encodeURIComponent(msg.teks)));
-          tombolHapusHtml = `
-            <button onclick="prosesHapusPesan('${msg.pengirim}', '${msg.penerima}', '${teksAmanB64}', '${msg.waktu}')" 
-                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 absolute top-1 right-1 text-xs p-1 transition-opacity duration-200" 
-                    title="Hapus pesan untuk semua">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          `;
+          tombolHapusHtml = `<button onclick="prosesHapusPesan('${msg.pengirim}', '${msg.penerima}', '${teksAmanB64}', '${msg.waktu}')" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 absolute top-1 right-1 text-xs p-1 transition-opacity duration-200" title="Hapus pesan"><i class="fa-solid fa-trash-can"></i></button>`;
         }
 
-        bubble.innerHTML = `
-          ${tombolHapusHtml}
-          ${isiKonten}
-          <span class="absolute bottom-0.5 right-1.5 text-[9px] text-gray-400 flex items-center gap-0.5 ml-4">
-            ${formatJamSaja}
-            ${sayaYangKirim ? '<i class="fa-solid fa-check-double text-sky-500"></i>' : ''}
-          </span>
-        `;
+        bubble.innerHTML = `${tombolHapusHtml}${isiKonten}<span class="absolute bottom-0.5 right-1.5 text-[9px] text-gray-400 flex items-center gap-0.5 ml-4">${formatJamSaja}${sayaYangKirim ? '<i class="fa-solid fa-check-double text-sky-500"></i>' : ''}</span>`;
         wrapper.appendChild(bubble);
         chatBox.appendChild(wrapper);
       });
 
-      if (forceScroll || isScrolled) {
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
+      if (forceScroll || isScrolled) chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Fungsi trigger jembatan ke Google Apps Script backend
-    function prosesHapusPesan(pengirim, penerima, teksB64, waktu) {
-      if (!confirm("Hapus pesan ini untuk semua orang? (File di Google Drive tidak akan terhapus)")) return;
-      
-      // Decode kembali teks aslinya
+    async function prosesHapusPesan(pengirim, penerima, teksB64, waktu) {
+      if (!confirm("Hapus pesan ini?")) return;
       const teksAsli = decodeURIComponent(escape(atob(teksB64)));
-      
-      google.script.run.withSuccessHandler(function(status) {
-        if (status === "Sukses") {
-          muatPesanChat(false); // Refresh chat secara real-time
-        } else {
-          alert("Gagal menghapus pesan.");
-        }
-      }).hapusPesanPribadi(pengirim, penerima, teksAsli, waktu);
+      const status = await panggilAPI("hapusPesanPribadi", [pengirim, penerima, teksAsli, waktu]);
+      if (status === "Sukses") muatPesanChat(false);
     }
-    
-    // Variabel Kontrol WebRTC Murni
-    let peerConnection = null;
-    let localStream = null;
-    let sedangDalamPanggilan = false;
-    let jenisPanggilanGlobal = "video"; 
-    let iceCandidatesAntrian = [];
 
-    // Konfigurasi Server STUN Gratis milik Google untuk mencari IP Publik (NAT Traversal)
-    const konfigurasiRTC = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
-    };
-
-    // 1. MEMULAI PANGGILAN (SISI PENELPON / OFFERER)
     async function mulaiPanggilan(denganVideo) {
       if (kontakAktif === "" || sedangDalamPanggilan) return;
       sedangDalamPanggilan = true;
@@ -406,34 +333,20 @@ function loopDataOtomatis() {
       document.getElementById('call-status').innerText = "Memanggil " + kontakAktif + "...";
 
       try {
-        // Ambil Akses Kamera / Mikrofon
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: denganVideo,
-          audio: true
-        });
+        localStream = await navigator.mediaDevices.getUserMedia({ video: denganVideo, audio: true });
         document.getElementById('local-video').srcObject = localStream;
-
-        // Buat Objek PeerConnection
         buatPeerConnection();
 
-        // Buat Offer (Undangan Sesi)
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        // Kirim notifikasi invite biasa agar HP/Browser target berdering
-        google.script.run.kirimPesanPribadi(akunSaya, kontakAktif, `CALL_INVITE:|KamarWebRTC|${denganVideo}`);
-
-        // Kirim data Offer SDP ke Google Sheet sebagai Sinyal
-        google.script.run.kirimSinyalWebRTC(akunSaya, kontakAktif, "OFFER", JSON.stringify(offer));
-
+        panggilAPI("kirimPesanPribadi", [akunSaya, kontakAktif, `CALL_INVITE:|KamarWebRTC|${denganVideo}`]);
+        panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "OFFER", JSON.stringify(offer)]);
       } catch (err) {
-        console.error("Gagal akses media:", err);
-        alert("Gagal mengakses Kamera/Mikrofon Anda.");
         akhiriPanggilan();
       }
     }
 
-    // 2. MENERIMA PANGGILAN (SISI PENERIMA / ANSWERER)
     async function terimaPanggilanWebRTC(namaPenelpon, denganVideo) {
       jenisPanggilanGlobal = denganVideo ? "video" : "audio";
       document.getElementById('call-modal').classList.remove('hidden');
@@ -441,46 +354,27 @@ function loopDataOtomatis() {
       document.getElementById('call-status').innerText = "Menghubungkan...";
 
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: denganVideo,
-          audio: true
-        });
+        localStream = await navigator.mediaDevices.getUserMedia({ video: denganVideo, audio: true });
         document.getElementById('local-video').srcObject = localStream;
-
         buatPeerConnection();
 
-        // Dengarkan database secara berkala untuk mengambil data OFFER dari si penelpon
         ambilSinyalTerakhirDariSheet(namaPenelpon, akunSaya, "OFFER", async (dataOffer) => {
           await peerConnection.setRemoteDescription(new RTCSessionDescription(dataOffer));
-          
-          // Buat Jawaban (Answer)
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
-          
-          // Kirim balik data ANSWER ke penelpon via Google Sheet
-          google.script.run.kirimSinyalWebRTC(akunSaya, namaPenelpon, "ANSWER", JSON.stringify(answer));
-          
-          // Proses ICE Candidates yang mungkin sempat mengantri sebelum remote terpasang
+          panggilAPI("kirimSinyalWebRTC", [akunSaya, namaPenelpon, "ANSWER", JSON.stringify(answer)]);
           prosesAntrianIce();
           DengarkanSinyalIceBerkala(namaPenelpon);
         });
-
       } catch (err) {
-        console.error("Gagal menerima panggilan:", err);
         akhiriPanggilan();
       }
     }
 
-    // 3. INISIALISASI KONEKSI PEER TO PEER
     function buatPeerConnection() {
       peerConnection = new RTCPeerConnection(konfigurasiRTC);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-      // Masukkan track audio & video kita ke jalur koneksi
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-      });
-
-      // Deteksi track video/audio kiriman dari lawan bicara
       peerConnection.ontrack = (event) => {
         const remoteVideo = document.getElementById('remote-video');
         if (remoteVideo.srcObject !== event.streams[0]) {
@@ -489,17 +383,16 @@ function loopDataOtomatis() {
         }
       };
 
-      // Jika browser kita menemukan rute jaringan terbaik (ICE Candidate), simpan ke Google Sheet
       peerConnection.onicecandidate = (event) => {
         if (event.candidate && kontakAktif !== "") {
-          google.script.run.kirimSinyalWebRTC(akunSaya, kontakAktif, "ICE", JSON.stringify(event.candidate));
+          panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "ICE", JSON.stringify(event.candidate)]);
         }
       };
     }
 
-    // 4. SISTEM MONITORING COELING SIGNALING VIA SPREADSHEET (MENGGANTIKAN WEBSOCKET)
     function ambilSinyalTerakhirDariSheet(dari, untuk, jenis, callback) {
-      google.script.run.withSuccessHandler(function(dataPesan) {
+      panggilAPI("ambilPesanPribadi", [dari, untuk]).then(dataPesan => {
+        if (!dataPesan) return;
         for (let i = dataPesan.length - 1; i >= 0; i--) {
           const msg = dataPesan[i];
           if (msg.pengirim.toLowerCase() === dari.toLowerCase() && msg.penerima.toLowerCase() === untuk.toLowerCase()) {
@@ -510,15 +403,11 @@ function loopDataOtomatis() {
             }
           }
         }
-      }).ambilPesanPribadi(dari, untuk);
+      });
     }
 
-    // Dipanggil oleh Penelpon untuk mendengarkan balasan ANSWER dan ICE dari Penerima
-    // Anda bisa memicu fungsi ini di dalam loopDataOtomatis() milik Anda
     function cekSinyalBalasanMasuk() {
       if (!sedangDalamPanggilan || !peerConnection) return;
-
-      // Jika kita penelpon dan remote belum diset, cari sinyal ANSWER
       if (peerConnection.signalingState === "have-local-offer") {
         ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
           await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
@@ -529,11 +418,11 @@ function loopDataOtomatis() {
     }
 
     function DengarkanSinyalIceBerkala(lawanBicara) {
-      google.script.run.withSuccessHandler(function(dataPesan) {
+      panggilAPI("ambilPesanPribadi", [lawanBicara, akunSaya]).then(dataPesan => {
+        if (!dataPesan) return;
         dataPesan.forEach(msg => {
           if (msg.pengirim.toLowerCase() === lawanBicara.toLowerCase() && msg.teks.startsWith("WEBRTC_SIGNAL:ICE|")) {
             const dataIce = JSON.parse(msg.teks.split("WEBRTC_SIGNAL:ICE|")[1]);
-            
             if (peerConnection && peerConnection.remoteDescription) {
               peerConnection.addIceCandidate(new RTCIceCandidate(dataIce)).catch(e => {});
             } else {
@@ -541,7 +430,7 @@ function loopDataOtomatis() {
             }
           }
         });
-      }).ambilPesanPribadi(lawanBicara, akunSaya);
+      });
     }
 
     function prosesAntrianIce() {
@@ -551,11 +440,9 @@ function loopDataOtomatis() {
       }
     }
 
-    // 5. MENGAKHIRI KONEKSI STREAMING
     function akhiriPanggilan() {
       sedangDalamPanggilan = false;
       iceCandidatesAntrian = [];
-      
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
@@ -564,7 +451,6 @@ function loopDataOtomatis() {
         peerConnection.close();
         peerConnection = null;
       }
-
       document.getElementById('remote-video').srcObject = null;
       document.getElementById('local-video').srcObject = null;
       document.getElementById('call-modal').classList.add('hidden');
@@ -580,46 +466,37 @@ function loopDataOtomatis() {
       }
     }
 
-    function kirimPesan() {
+    async function kirimPesan() {
       const input = document.getElementById('input-pesan');
       const teks = input.value.trim();
       if (teks === "" || kontakAktif === "") return;
       input.value = "";
       document.getElementById('btn-kirim').disabled = true;
-      google.script.run.withSuccessHandler(function() {
-        document.getElementById('btn-kirim').disabled = false;
-        muatPesanChat(true);
-      }).kirimPesanPribadi(akunSaya, kontakAktif, teks);
+      await panggilAPI("kirimPesanPribadi", [akunSaya, kontakAktif, teks]);
+      document.getElementById('btn-kirim').disabled = false;
+      muatPesanChat(true);
     }
 
     function unggahDanKirimFile(inputElement) {
       if (inputElement.files.length === 0 || kontakAktif === "") return;
       const file = inputElement.files[0];
       const ClipBtn = document.getElementById('btn-lampiran');
-      
       ClipBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-emerald-600 text-xl"></i>`;
       ClipBtn.disabled = true;
 
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         const dataB64 = e.target.result.split(',')[1];
-        google.script.run.withSuccessHandler(function(linkDrive) {
-          ClipBtn.innerHTML = `<i class="fa-solid fa-paperclip text-xl"></i>`;
-          ClipBtn.disabled = false;
-          inputElement.value = "";
-          if (linkDrive !== "Gagal") {
-            muatPesanChat(true);
-          } else {
-            alert("Gagal mengunggah berkas.");
-          }
-        }).simpanFileKeDrive(akunSaya, kontakAktif, dataB64, file.name, file.type);
+        const linkDrive = await panggilAPI("simpanFileKeDrive", [akunSaya, kontakAktif, dataB64, file.name, file.type]);
+        ClipBtn.innerHTML = `<i class="fa-solid fa-paperclip text-xl"></i>`;
+        ClipBtn.disabled = false;
+        inputElement.value = "";
+        if (linkDrive !== "Gagal") muatPesanChat(true);
       };
       reader.readAsDataURL(file);
     }
 
-    function cekEnter(e) {
-      if (e.key === 'Enter') kirimPesan();
-    }
+    function cekEnter(e) { if (e.key === 'Enter') kirimPesan(); }
   </script>
 </body>
 </html>
