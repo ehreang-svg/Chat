@@ -257,20 +257,22 @@
           ? `<span class="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white block absolute bottom-0 right-0"></span>`
           : `<span class="w-2.5 h-2.5 bg-gray-400 rounded-full border border-white block absolute bottom-0 right-0"></span>`;
           
+        // Modifikasi di sini: Tampilkan waktu terakhir online jika offline
+        const infoTerakhir = user.terakhirOnline ? user.terakhirOnline : "-";
         const teksStatus = user.online 
           ? `<span class="text-xs text-emerald-600 font-medium">Online</span>` 
-          : `<span class="text-xs text-gray-400">Offline</span>`;
+          : `<span class="text-xs text-gray-400">T terakhir online: ${infoTerakhir}</span>`;
 
         if (isAktif) {
           const subHeader = document.querySelector("#main-chat header p");
           if (subHeader) {
-            subHeader.innerText = user.online ? "Online" : "Offline";
+            subHeader.innerText = user.online ? "Online" : `Terakhir online: ${infoTerakhir}`;
             subHeader.className = user.online ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
           }
         }
 
         item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-100' : 'hover:bg-gray-50'}`;
-        item.onclick = () => pilihKontakMembukaChat(user.nama, user.online);
+        item.onclick = () => pilihKontakMembukaChat(user.nama, user.online, infoTerakhir); // Tambah infoTerakhir ke parameter
         item.innerHTML = `
           <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 relative">
             ${user.nama.charAt(0).toUpperCase()}
@@ -286,14 +288,14 @@
       });
     }
 
-    function pilihKontakMembukaChat(namaTarget, apakahOnline) {
+    function pilihKontakMembukaChat(namaTarget, apakahOnline, terakhirOnline) {
       kontakAktif = namaTarget;
       document.getElementById('nama-target').innerText = kontakAktif;
       document.getElementById('avatar-target').innerText = kontakAktif.charAt(0).toUpperCase();
       
       const subHeader = document.querySelector("#main-chat header p");
       if (subHeader) {
-        subHeader.innerText = apakahOnline ? "Online" : "Offline";
+        subHeader.innerText = apakahOnline ? "Online" : `Terakhir online: ${terakhirOnline || '-'}`;
         subHeader.className = apakahOnline ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
       }
       
