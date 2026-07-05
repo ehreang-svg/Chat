@@ -241,6 +241,35 @@
       renderKontak(daftar || []);
     }
 
+    function formatWaktuLalu(timestamp) {
+      if (!timestamp || timestamp === 0) return "-";
+      
+      const sekarang = new Date().getTime();
+      const selisihDetik = Math.floor((sekarang - timestamp) / 1000);
+      
+      if (selisihDetik < 60) {
+        return "baru saja";
+      }
+      
+      const selisihMenit = Math.floor(selisihDetik / 60);
+      if (selisihMenit < 60) {
+        return `${selisihMenit} menit yang lalu`;
+      }
+      
+      const selisihJam = Math.floor(selisihMenit / 60);
+      if (selisihJam < 24) {
+        return `${selisihJam} jam yang lalu`;
+      }
+      
+      // Jika lebih dari 24 jam, tampilkan tanggal biasa
+      const dt = new Date(timestamp);
+      const tgl = ("0" + dt.getDate()).slice(-2);
+      const bln = ("0" + (dt.getMonth() + 1)).slice(-2);
+      const jam = ("0" + dt.getHours()).slice(-2);
+      const menit = ("0" + dt.getMinutes()).slice(-2);
+      return `${tgl}/${bln} ${jam}:${menit}`;
+    }
+
     function renderKontak(daftarKontak) {
       const listEl = document.getElementById('list-kontak');
       listEl.innerHTML = "";
@@ -257,22 +286,22 @@
           ? `<span class="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white block absolute bottom-0 right-0"></span>`
           : `<span class="w-2.5 h-2.5 bg-gray-400 rounded-full border border-white block absolute bottom-0 right-0"></span>`;
           
-        // Modifikasi di sini: Tampilkan waktu terakhir online jika offline
-        const infoTerakhir = user.terakhirOnline ? user.terakhirOnline : "-";
+        // Hitung teks relatif (contoh: 2 menit yang lalu)
+        const infoTerakhir = formatWaktuLalu(user.terakhirOnlineTime);
         const teksStatus = user.online 
           ? `<span class="text-xs text-emerald-600 font-medium">Online</span>` 
-          : `<span class="text-xs text-gray-400">T terakhir online: ${infoTerakhir}</span>`;
+          : `<span class="text-xs text-gray-400">Terakhir online ${infoTerakhir}</span>`;
 
         if (isAktif) {
           const subHeader = document.querySelector("#main-chat header p");
           if (subHeader) {
-            subHeader.innerText = user.online ? "Online" : `Terakhir online: ${infoTerakhir}`;
+            subHeader.innerText = user.online ? "Online" : `Terakhir online ${infoTerakhir}`;
             subHeader.className = user.online ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
           }
         }
 
         item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-100' : 'hover:bg-gray-50'}`;
-        item.onclick = () => pilihKontakMembukaChat(user.nama, user.online, infoTerakhir); // Tambah infoTerakhir ke parameter
+        item.onclick = () => pilihKontakMembukaChat(user.nama, user.online, infoTerakhir);
         item.innerHTML = `
           <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 relative">
             ${user.nama.charAt(0).toUpperCase()}
@@ -287,7 +316,7 @@
         listEl.appendChild(item);
       });
     }
-
+    
     function pilihKontakMembukaChat(namaTarget, apakahOnline, terakhirOnline) {
       kontakAktif = namaTarget;
       document.getElementById('nama-target').innerText = kontakAktif;
@@ -295,7 +324,7 @@
       
       const subHeader = document.querySelector("#main-chat header p");
       if (subHeader) {
-        subHeader.innerText = apakahOnline ? "Online" : `Terakhir online: ${terakhirOnline || '-'}`;
+        subHeader.innerText = apakahOnline ? "Online" : `Terakhir online ${terakhirOnline}`;
         subHeader.className = apakahOnline ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
       }
       
