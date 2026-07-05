@@ -1,1 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>WhatsApp Private Clone</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://8x8.vc/vpaas-magic-cookie-391494e8fc6d44cca82ee0a9cf13998b/external_api.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    .bg-wa-green { background-color: #008069; }
+    .bg-wa-chat { background-color: #efeae2; }
+    .bg-wa-bubble-out { background-color: #d9fdd3; }
+  </style>
+</head>
+<body class="bg-gray-200 h-screen w-screen flex items-center justify-center p-0 md:p-4 font-sans antialiased overflow-hidden">
 
+  <div id="login-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <div class="text-center mb-6">
+        <i class="fa-brands fa-whatsapp text-emerald-600 text-5xl mb-2"></i>
+        <h2 class="text-xl font-bold text-gray-800">Masuk ke WhatsApp</h2>
+        <p class="text-xs text-gray-500">Gunakan username & password Anda</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+          <input type="text" id="login-user" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-emerald-600" placeholder="Masukkan username">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+          <input type="password" id="login-pass" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-emerald-600" placeholder="Masukkan password">
+        </div>
+        <p id="login-error" class="text-xs text-red-500 hidden text-center"></p>
+        <button onclick="prosesLogin()" id="btn-login-submit" class="w-full bg-emerald-600 text-white font-medium py-2 rounded text-sm hover:bg-emerald-700 transition">
+          Masuk / Daftar
+        </button>
+      </div>
+    </div>
+  </div>
+
+<div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-4">
+    <div class="bg-gray-900 w-full max-w-3xl aspect-video rounded-lg overflow-hidden shadow-2xl relative flex flex-col">
+      
+      <div class="relative w-full flex-grow bg-black flex items-center justify-center overflow-hidden">
+        <video id="remote-video" autoplay playsinline class="w-full h-full object-cover"></video>
+        
+        <video id="local-video" autoplay playsinline muted class="absolute bottom-4 right-4 w-1/4 max-w-[150px] aspect-video rounded-md border-2 border-white object-cover shadow-lg bg-gray-800"></video>
+      </div>
+
+      <div class="bg-gray-800 p-4 flex justify-between items-center text-white shrink-0">
+        <div class="flex flex-col">
+          <span id="call-status" class="text-sm font-medium text-emerald-400">Menghubungkan P2P...</span>
+          <span id="call-type" class="text-xs text-gray-400">Panggilan</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="toggleMuteAudio()" id="btn-mute-audio" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-full w-10 h-10 transition">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button onclick="akhiriPanggilan()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-phone-slash"></i> Akhiri
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="w-full h-full max-w-6xl bg-white flex rounded-none md:rounded-lg shadow-lg overflow-hidden hidden">
+    
+    <aside class="w-1/3 border-r border-gray-200 flex flex-col bg-white min-w-[280px]">
+      <div class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold" id="avatar-saya">
+            Y
+          </div>
+          <div>
+            <h2 class="font-bold text-sm text-gray-800" id="nama-saya">Memuat...</h2>
+            <p class="text-xs text-emerald-600 font-medium">Online</p>
+          </div>
+        </div>
+        <button onclick="logout()" class="text-gray-500 hover:text-red-600 p-2 rounded transition" title="Keluar">
+          <i class="fa-solid fa-right-from-bracket text-lg"></i>
+        </button>
+      </div>
+      
+      <div class="flex-grow overflow-y-auto" id="list-kontak">
+        <p class="text-center text-gray-400 text-sm p-4">Memuat daftar kontak...</p>
+      </div>
+    </aside>
+
+    <main class="w-2/3 flex flex-col bg-wa-chat relative">
+      
+      <div id="no-chat-screen" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-10">
+        <i class="fa-solid fa-comments text-gray-300 text-7xl mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-700">WhatsApp Web Private</h3>
+        <p class="text-gray-500 text-sm mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol, mengirim berkas atau menelepon.</p>
+      </div>
+
+      <header class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0 z-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-lg" id="avatar-target">
+            ?
+          </div>
+          <div>
+            <h2 class="font-bold text-sm text-gray-800" id="nama-target">Nama Kontak</h2>
+            <p class="text-[11px] text-emerald-600">terhubung privat</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4 text-gray-600 pr-2">
+          <button onclick="mulaiPanggilan(false)" class="hover:text-emerald-700 transition" title="Panggilan Suara">
+            <i class="fa-solid fa-phone text-lg"></i>
+          </button>
+          <button onclick="mulaiPanggilan(true)" class="hover:text-emerald-700 transition" title="Panggilan Video">
+            <i class="fa-solid fa-video text-lg"></i>
+          </button>
+        </div>
+      </header>
+
+      <div id="chat-box" class="flex-grow overflow-y-auto p-4 space-y-3 flex flex-col"></div>
+
+      <footer class="bg-gray-100 px-4 py-3 flex items-center gap-3 border-t border-gray-200 shrink-0">
+        <input type="file" id="input-file" class="hidden" onchange="unggahDanKirimFile(this)">
+        <button onclick="document.getElementById('input-file').click()" id="btn-lampiran" class="text-gray-500 hover:text-emerald-700 transition w-8 h-8 flex items-center justify-center" title="Kirim Foto / File">
+          <i class="fa-solid fa-paperclip text-xl"></i>
+        </button>
+
+        <input type="text" id="input-pesan" placeholder="Ketik pesan..." 
+          class="flex-grow bg-white py-2 px-4 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm"
+          onkeypress="cekEnter(event)">
+          
+        <button id="btn-kirim" onclick="kirimPesan()" class="bg-wa-green text-white w-10 h-10 rounded-full flex items-center justify-center shadow hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-paper-plane text-sm ml-0.5"></i>
+        </button>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    let akunSaya = "";
+    let kontakAktif = "";
+    let intervalOtomatis = null;
+    let jitsiApi = null;
+
+    function prosesLogin() {
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value.trim();
+      const errorEl = document.getElementById('login-error');
+      const btn = document.getElementById('btn-login-submit');
+
+      if (!user || !pass) {
+        errorEl.innerText = "Username dan Password wajib diisi!";
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      errorEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerText = "Memverifikasi...";
+
+      google.script.run.withSuccessHandler(function(respon) {
+        btn.disabled = false;
+        btn.innerText = "Masuk / Daftar";
+
+        if (respon.status === "sukses") {
+          akunSaya = respon.username;
+          
+          document.getElementById('login-modal').classList.add('hidden');
+          document.getElementById('app-container').classList.remove('hidden');
+          
+          document.getElementById('nama-saya').innerText = akunSaya;
+          document.getElementById('avatar-saya').innerText = akunSaya.charAt(0).toUpperCase();
+
+          refreshDaftarKontak();
+          intervalOtomatis = setInterval(loopDataOtomatis, 3000);
+        } else {
+          errorEl.innerText = respon.pesan;
+          errorEl.classList.remove('hidden');
+        }
+      }).loginUser(user, pass);
+    }
+
+    function logout() {
+      if (intervalOtomatis) clearInterval(intervalOtomatis);
+      akunSaya = "";
+      kontakAktif = "";
+      document.getElementById('login-user').value = "";
+      document.getElementById('login-pass').value = "";
+      document.getElementById('login-error').classList.add('hidden');
+      document.getElementById('no-chat-screen').classList.remove('hidden');
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('login-modal').classList.remove('hidden');
+    }
+
+function loopDataOtomatis() {
+      if (!akunSaya) return;
+      refreshDaftarKontak();
+      if (kontakAktif !== "") {
+        muatPesanChat(false);
+      }
+      // TAMBAHKAN BARIS INI: Cek sinyal rute WebRTC jika sedang menelepon
+      if (sedangDalamPanggilan) {
+        cekSinyalBalasanMasuk();
+      }
+    }
+
+    function refreshDaftarKontak() {
+      google.script.run.withSuccessHandler(renderKontak).ambilKontak(akunSaya);
+    }
+
+    function renderKontak(daftarKontak) {
+      const listEl = document.getElementById('list-kontak');
+      listEl.innerHTML = "";
+      
+      if (daftarKontak.length === 0) {
+        listEl.innerHTML = `<p class="text-center text-gray-400 text-xs p-4">Belum ada user lain terdaftar.</p>`;
+        return;
+      }
+
+      daftarKontak.forEach(nama => {
+        const item = document.createElement('div');
+        const isAktif = nama === kontakAktif;
+        
+        item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${
+          isAktif ? 'bg-gray-200' : 'hover:bg-gray-50'
+        }`;
+        
+        item.onclick = () => pilihKontakMembukaChat(nama);
+        
+        item.innerHTML = `
+          <div class="w-11 h-11 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
+            ${nama.charAt(0).toUpperCase()}
+          </div>
+          <div class="flex-grow">
+            <h4 class="font-semibold text-sm text-gray-800">${nama}</h4>
+            <p class="text-xs text-gray-400 truncate">Klik untuk chat pribadi...</p>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function pilihKontakMembukaChat(namaTarget) {
+      kontakAktif = namaTarget;
+      document.getElementById('nama-target').innerText = kontakAktif;
+      document.getElementById('avatar-target').innerText = kontakAktif.charAt(0).toUpperCase();
+      document.getElementById('no-chat-screen').classList.add('hidden');
+      muatPesanChat(true);
+      refreshDaftarKontak();
+    }
+
+    function muatPesanChat(forceScroll) {
+      if (kontakAktif === "") return;
+      google.script.run.withSuccessHandler(function(dataPesan) {
+        renderPesan(dataPesan, forceScroll);
+      }).ambilPesanPribadi(akunSaya, kontakAktif);
+    }
+
+    function renderPesan(daftarPesan, forceScroll) {
+      const chatBox = document.getElementById('chat-box');
+      const isScrolled = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 60;
+      
+      chatBox.innerHTML = "";
+
+      daftarPesan.forEach(msg => {
+        // JIKA PESAN SUDAH DIHAPUS, JANGAN DI-RENDER/DITAMPILKAN
+        if (msg.teks === "[PESAN_DIHAPUS]") return;
+
+        const sayaYangKirim = msg.pengirim.toLowerCase() === akunSaya.toLowerCase();
+        
+        // FITUR DETEKSI TELEPON MASUK WEBRTC
+        if (msg.teks.startsWith("CALL_INVITE:") && !sayaYangKirim && !sedangDalamPanggilan) {
+          const detailPanggilan = msg.teks.split("|");
+          const pakeVideo = detailPanggilan[2] === "true";
+          
+          sedangDalamPanggilan = true; // Kunci agar tidak muncul confirm berkali-kali
+          if(confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msg.pengirim}?`)) {
+            terimaPanggilanWebRTC(msg.pengirim, pakeVideo);
+          } else {
+            sedangDalamPanggilan = false;
+          }
+        }
+
+        // Menyembunyikan log sinyal WebRTC mentah agar tidak mengotori chat box
+        if (msg.teks.startsWith("WEBRTC_SIGNAL:")) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex w-full group ${sayaYangKirim ? 'justify-end' : 'justify-start'}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = `max-w-[75%] rounded-lg p-2 shadow-sm text-sm relative ${
+          sayaYangKirim ? 'bg-wa-bubble-out rounded-tr-none' : 'bg-white rounded-tl-none'
+        }`;
+
+        let isiKonten = "";
+        
+        if (msg.teks.startsWith("https://drive.google.com/")) {
+          const namaFileKecil = msg.teks.toLowerCase();
+          const apakahGambar = namaFileKecil.includes(".jpg") || namaFileKecil.includes(".jpeg") || 
+                               namaFileKecil.includes(".png") || namaFileKecil.includes(".gif") || 
+                               namaFileKecil.includes(".webp");
+          
+          if (apakahGambar) {
+            isiKonten = `
+              <div class="mb-1">
+                <img src="${msg.teks}" class="max-w-xs max-h-48 rounded shadow-sm object-cover bg-gray-100" alt="Foto">
+              </div>
+              <a href="${msg.teks}" target="_blank" class="text-blue-600 hover:underline font-medium text-xs block mt-1">
+                <i class="fa-solid fa-download mr-1"></i> Unduh Foto asli
+              </a>`;
+          } else {
+            isiKonten = `
+              <div class="flex items-center gap-3 bg-black/5 p-2 rounded border border-black/10 mb-1">
+                <i class="fa-solid fa-file-lines text-gray-500 text-2xl"></i>
+                <div class="overflow-hidden">
+                  <p class="text-xs font-semibold text-gray-700 truncate max-w-[150px]">Berkas Dokumen</p>
+                  <a href="${msg.teks}" target="_blank" class="text-emerald-700 hover:underline text-xs font-bold block">
+                    <i class="fa-solid fa-circle-arrow-down mr-0.5"></i> Download File
+                  </a>
+                </div>
+              </div>`;
+          }
+        } else if (msg.teks.startsWith("CALL_INVITE:")) {
+          const isVideo = msg.teks.includes("|true");
+          isiKonten = `<p class="italic text-gray-600 flex items-center gap-1.5 text-xs">
+            <i class="fa-solid ${isVideo ? 'fa-video' : 'fa-phone'}"></i> Panggilan ${isVideo ? 'Video' : 'Suara'} dimulai
+          </p>`;
+        } else {
+          isiKonten = `<p class="pr-12 break-words">${msg.teks}</p>`;
+        }
+
+        const formatJamSaja = msg.waktu ? msg.waktu.substring(0, 5) : "--:--";
+
+        // Tombol aksi hapus (hanya muncul di pesan kita sendiri saat di-hover/group-hover)
+        let tombolHapusHtml = "";
+        if (sayaYangKirim && !msg.teks.startsWith("CALL_INVITE:")) {
+          // Mengirimkan parameter teks dalam bentuk base64 agar aman dari karakter petik/error javascript string
+          const teksAmanB64 = btoa(unescape(encodeURIComponent(msg.teks)));
+          tombolHapusHtml = `
+            <button onclick="prosesHapusPesan('${msg.pengirim}', '${msg.penerima}', '${teksAmanB64}', '${msg.waktu}')" 
+                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 absolute top-1 right-1 text-xs p-1 transition-opacity duration-200" 
+                    title="Hapus pesan untuk semua">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          `;
+        }
+
+        bubble.innerHTML = `
+          ${tombolHapusHtml}
+          ${isiKonten}
+          <span class="absolute bottom-0.5 right-1.5 text-[9px] text-gray-400 flex items-center gap-0.5 ml-4">
+            ${formatJamSaja}
+            ${sayaYangKirim ? '<i class="fa-solid fa-check-double text-sky-500"></i>' : ''}
+          </span>
+        `;
+        wrapper.appendChild(bubble);
+        chatBox.appendChild(wrapper);
+      });
+
+      if (forceScroll || isScrolled) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+
+    // Fungsi trigger jembatan ke Google Apps Script backend
+    function prosesHapusPesan(pengirim, penerima, teksB64, waktu) {
+      if (!confirm("Hapus pesan ini untuk semua orang? (File di Google Drive tidak akan terhapus)")) return;
+      
+      // Decode kembali teks aslinya
+      const teksAsli = decodeURIComponent(escape(atob(teksB64)));
+      
+      google.script.run.withSuccessHandler(function(status) {
+        if (status === "Sukses") {
+          muatPesanChat(false); // Refresh chat secara real-time
+        } else {
+          alert("Gagal menghapus pesan.");
+        }
+      }).hapusPesanPribadi(pengirim, penerima, teksAsli, waktu);
+    }
+    
+    // Variabel Kontrol WebRTC Murni
+    let peerConnection = null;
+    let localStream = null;
+    let sedangDalamPanggilan = false;
+    let jenisPanggilanGlobal = "video"; 
+    let iceCandidatesAntrian = [];
+
+    // Konfigurasi Server STUN Gratis milik Google untuk mencari IP Publik (NAT Traversal)
+    const konfigurasiRTC = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // 1. MEMULAI PANGGILAN (SISI PENELPON / OFFERER)
+    async function mulaiPanggilan(denganVideo) {
+      if (kontakAktif === "" || sedangDalamPanggilan) return;
+      sedangDalamPanggilan = true;
+      jenisPanggilanGlobal = denganVideo ? "video" : "audio";
+
+      document.getElementById('call-modal').classList.remove('hidden');
+      document.getElementById('call-type').innerText = denganVideo ? "Panggilan Video P2P" : "Panggilan Suara P2P";
+      document.getElementById('call-status').innerText = "Memanggil " + kontakAktif + "...";
+
+      try {
+        // Ambil Akses Kamera / Mikrofon
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: denganVideo,
+          audio: true
+        });
+        document.getElementById('local-video').srcObject = localStream;
+
+        // Buat Objek PeerConnection
+        buatPeerConnection();
+
+        // Buat Offer (Undangan Sesi)
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        // Kirim notifikasi invite biasa agar HP/Browser target berdering
+        google.script.run.kirimPesanPribadi(akunSaya, kontakAktif, `CALL_INVITE:|KamarWebRTC|${denganVideo}`);
+
+        // Kirim data Offer SDP ke Google Sheet sebagai Sinyal
+        google.script.run.kirimSinyalWebRTC(akunSaya, kontakAktif, "OFFER", JSON.stringify(offer));
+
+      } catch (err) {
+        console.error("Gagal akses media:", err);
+        alert("Gagal mengakses Kamera/Mikrofon Anda.");
+        akhiriPanggilan();
+      }
+    }
+
+    // 2. MENERIMA PANGGILAN (SISI PENERIMA / ANSWERER)
+    async function terimaPanggilanWebRTC(namaPenelpon, denganVideo) {
+      jenisPanggilanGlobal = denganVideo ? "video" : "audio";
+      document.getElementById('call-modal').classList.remove('hidden');
+      document.getElementById('call-type').innerText = denganVideo ? "Panggilan Video P2P" : "Panggilan Suara P2P";
+      document.getElementById('call-status').innerText = "Menghubungkan...";
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: denganVideo,
+          audio: true
+        });
+        document.getElementById('local-video').srcObject = localStream;
+
+        buatPeerConnection();
+
+        // Dengarkan database secara berkala untuk mengambil data OFFER dari si penelpon
+        ambilSinyalTerakhirDariSheet(namaPenelpon, akunSaya, "OFFER", async (dataOffer) => {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(dataOffer));
+          
+          // Buat Jawaban (Answer)
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          
+          // Kirim balik data ANSWER ke penelpon via Google Sheet
+          google.script.run.kirimSinyalWebRTC(akunSaya, namaPenelpon, "ANSWER", JSON.stringify(answer));
+          
+          // Proses ICE Candidates yang mungkin sempat mengantri sebelum remote terpasang
+          prosesAntrianIce();
+          DengarkanSinyalIceBerkala(namaPenelpon);
+        });
+
+      } catch (err) {
+        console.error("Gagal menerima panggilan:", err);
+        akhiriPanggilan();
+      }
+    }
+
+    // 3. INISIALISASI KONEKSI PEER TO PEER
+    function buatPeerConnection() {
+      peerConnection = new RTCPeerConnection(konfigurasiRTC);
+
+      // Masukkan track audio & video kita ke jalur koneksi
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      // Deteksi track video/audio kiriman dari lawan bicara
+      peerConnection.ontrack = (event) => {
+        const remoteVideo = document.getElementById('remote-video');
+        if (remoteVideo.srcObject !== event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+          document.getElementById('call-status').innerText = "Terhubung (Peer-to-Peer)";
+        }
+      };
+
+      // Jika browser kita menemukan rute jaringan terbaik (ICE Candidate), simpan ke Google Sheet
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && kontakAktif !== "") {
+          google.script.run.kirimSinyalWebRTC(akunSaya, kontakAktif, "ICE", JSON.stringify(event.candidate));
+        }
+      };
+    }
+
+    // 4. SISTEM MONITORING COELING SIGNALING VIA SPREADSHEET (MENGGANTIKAN WEBSOCKET)
+    function ambilSinyalTerakhirDariSheet(dari, untuk, jenis, callback) {
+      google.script.run.withSuccessHandler(function(dataPesan) {
+        for (let i = dataPesan.length - 1; i >= 0; i--) {
+          const msg = dataPesan[i];
+          if (msg.pengirim.toLowerCase() === dari.toLowerCase() && msg.penerima.toLowerCase() === untuk.toLowerCase()) {
+            if (msg.teks.startsWith(`WEBRTC_SIGNAL:${jenis}|`)) {
+              const dataMentahJson = msg.teks.split(`WEBRTC_SIGNAL:${jenis}|`)[1];
+              callback(JSON.parse(dataMentahJson));
+              break;
+            }
+          }
+        }
+      }).ambilPesanPribadi(dari, untuk);
+    }
+
+    // Dipanggil oleh Penelpon untuk mendengarkan balasan ANSWER dan ICE dari Penerima
+    // Anda bisa memicu fungsi ini di dalam loopDataOtomatis() milik Anda
+    function cekSinyalBalasanMasuk() {
+      if (!sedangDalamPanggilan || !peerConnection) return;
+
+      // Jika kita penelpon dan remote belum diset, cari sinyal ANSWER
+      if (peerConnection.signalingState === "have-local-offer") {
+        ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
+          prosesAntrianIce();
+          DengarkanSinyalIceBerkala(kontakAktif);
+        });
+      }
+    }
+
+    function DengarkanSinyalIceBerkala(lawanBicara) {
+      google.script.run.withSuccessHandler(function(dataPesan) {
+        dataPesan.forEach(msg => {
+          if (msg.pengirim.toLowerCase() === lawanBicara.toLowerCase() && msg.teks.startsWith("WEBRTC_SIGNAL:ICE|")) {
+            const dataIce = JSON.parse(msg.teks.split("WEBRTC_SIGNAL:ICE|")[1]);
+            
+            if (peerConnection && peerConnection.remoteDescription) {
+              peerConnection.addIceCandidate(new RTCIceCandidate(dataIce)).catch(e => {});
+            } else {
+              iceCandidatesAntrian.push(dataIce);
+            }
+          }
+        });
+      }).ambilPesanPribadi(lawanBicara, akunSaya);
+    }
+
+    function prosesAntrianIce() {
+      while (iceCandidatesAntrian.length > 0 && peerConnection && peerConnection.remoteDescription) {
+        const candidate = iceCandidatesAntrian.shift();
+        peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => {});
+      }
+    }
+
+    // 5. MENGAKHIRI KONEKSI STREAMING
+    function akhiriPanggilan() {
+      sedangDalamPanggilan = false;
+      iceCandidatesAntrian = [];
+      
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      document.getElementById('remote-video').srcObject = null;
+      document.getElementById('local-video').srcObject = null;
+      document.getElementById('call-modal').classList.add('hidden');
+    }
+
+    function toggleMuteAudio() {
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          document.getElementById('btn-mute-audio').classList.toggle('bg-red-600');
+        }
+      }
+    }
+
+    function kirimPesan() {
+      const input = document.getElementById('input-pesan');
+      const teks = input.value.trim();
+      if (teks === "" || kontakAktif === "") return;
+      input.value = "";
+      document.getElementById('btn-kirim').disabled = true;
+      google.script.run.withSuccessHandler(function() {
+        document.getElementById('btn-kirim').disabled = false;
+        muatPesanChat(true);
+      }).kirimPesanPribadi(akunSaya, kontakAktif, teks);
+    }
+
+    function unggahDanKirimFile(inputElement) {
+      if (inputElement.files.length === 0 || kontakAktif === "") return;
+      const file = inputElement.files[0];
+      const ClipBtn = document.getElementById('btn-lampiran');
+      
+      ClipBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-emerald-600 text-xl"></i>`;
+      ClipBtn.disabled = true;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataB64 = e.target.result.split(',')[1];
+        google.script.run.withSuccessHandler(function(linkDrive) {
+          ClipBtn.innerHTML = `<i class="fa-solid fa-paperclip text-xl"></i>`;
+          ClipBtn.disabled = false;
+          inputElement.value = "";
+          if (linkDrive !== "Gagal") {
+            muatPesanChat(true);
+          } else {
+            alert("Gagal mengunggah berkas.");
+          }
+        }).simpanFileKeDrive(akunSaya, kontakAktif, dataB64, file.name, file.type);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function cekEnter(e) {
+      if (e.key === 'Enter') kirimPesan();
+    }
+  </script>
+</body>
+</html>
