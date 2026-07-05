@@ -436,17 +436,6 @@
       });
     }
 
-    function cekSinyalBalasanMasuk() {
-      if (!sedangDalamPanggilan || !peerConnection) return;
-      if (peerConnection.signalingState === "have-local-offer") {
-        ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
-          await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
-          prosesAntrianIce();
-          DengarkanSinyalIceBerkala(kontakAktif);
-        });
-      }
-    }
-
     function DengarkanSinyalIceBerkala(lawanBicara) {
       panggilAPI("ambilPesanPribadi", [lawanBicara, akunSaya]).then(dataPesan => {
         if (!dataPesan) return;
@@ -470,9 +459,17 @@
       }
     }
 
-    function akhiriPanggilan() {
+// 1. MODIFIKASI FUNGSI AKHIRI PANGGILAN
+    async function akhiriPanggilan() {
+      // Jika kita yang menekan tombol "Akhiri", kirim sinyal END ke lawan bicara
+      if (sedangDalamPanggilan && kontakAktif !== "") {
+        panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "END", JSON.stringify({ aksi: "close" })]);
+      }
+
+      // Hentikan semua proses streaming lokal dan remote
       sedangDalamPanggilan = false;
       iceCandidatesAntrian = [];
+      
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         localStream = null;
@@ -481,9 +478,39 @@
         peerConnection.close();
         peerConnection = null;
       }
+
       document.getElementById('remote-video').srcObject = null;
       document.getElementById('local-video').srcObject = null;
       document.getElementById('call-modal').classList.add('hidden');
+    }
+
+    // 2. PERBARUI FUNGSI CEK SINYAL UNTUK MENDENGARKAN SINYAL "ANSWER" DAN "END"
+    function cekSinyalBalasanMasuk() {
+      if (!sedangDalamPanggilan || !peerConnection) return;
+
+      // Pantau jika ada sinyal END masuk dari lawan bicara untuk mematikan panggilan otomatis
+      ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "END", (dataEnd) => {
+        if (dataEnd && sedangDalamPanggilan) {
+          console.log("Lawan bicara memutuskan panggilan.");
+          // Panggil fungsi penutup tanpa mengirim sinyal balik (agar tidak looping)
+          sedangDalamPanggilan = false;
+          iceCandidatesAntrian = [];
+          if (localStream) localStream.getTracks().forEach(track => track.stop());
+          if (peerConnection) peerConnection.close();
+          document.getElementById('remote-video').srcObject = null;
+          document.getElementById('local-video').srcObject = null;
+          document.getElementById('call-modal').classList.add('hidden');
+        }
+      });
+
+      // Jika kita penelpon dan remote belum diset, cari sinyal ANSWER (Logika Lama Anda)
+      if (peerConnection.signalingState === "have-local-offer") {
+        ambilSinyalTerakhirDariSheet(kontakAktif, akunSaya, "ANSWER", async (dataAnswer) => {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
+          prosesAntrianIce();
+          DengarkanSinyalIceBerkala(kontakAktif);
+        });
+      }
     }
 
     function toggleMuteAudio() {
