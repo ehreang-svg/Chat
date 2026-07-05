@@ -332,16 +332,49 @@
         if (msg.teks === "[PESAN_DIHAPUS]") return;
         const sayaYangKirim = msg.pengirim.toLowerCase() === akunSaya.toLowerCase();
         
+        // ====================================================================
+        // PERBAIKAN: Proteksi agar Pop-up Panggilan Masuk Tidak Muncul Terus
+        // ====================================================================
         if (msg.teks.startsWith("CALL_INVITE:") && !sayaYangKirim && !sedangDalamPanggilan) {
-          const detailPanggilan = msg.teks.split("|");
-          const pakeVideo = detailPanggilan[2] === "true";
-          sedangDalamPanggilan = true;
-          if(confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msg.pengirim}?`)) {
-            terimaPanggilanWebRTC(msg.pengirim, pakeVideo);
-          } else {
-            sedangDalamPanggilan = false;
+          
+          // Ambil waktu pesan dikirim (Asumsi format dari backend adalah objek date atau string waktu)
+          // Kita proteksi menggunakan batasan waktu: Hanya terima jika pesan berumur kurang dari 12 detik
+          let waktuPesanValid = true;
+          
+          if (msg.timestamp) { // Jika backend mengirimkan UNIX timestamp (milidetik)
+            const waktuSekarang = new Date().getTime();
+            if (waktuSekarang - msg.timestamp > 12000) { 
+              waktuPesanValid = false; // Abaikan jika undangan telepon sudah kadaluarsa (lebih dari 12 detik)
+            }
+          } else if (msg.waktu) {
+            // Pengaman alternatif jika hanya ada string "HH:mm"
+            // Mengingat presisi menit, kita buat batasan logis di tingkat client menggunakan state session global
+            if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
+            const idPanggilanUnik = msg.pengirim + "_" + msg.waktu;
+            
+            if (window.panggilanTerlewati.includes(idPanggilanUnik)) {
+              waktuPesanValid = false; // Sudah pernah ditolak/diakhiri sebelumnya
+            }
+          }
+
+          if (waktuPesanValid) {
+            const detailPanggilan = msg.teks.split("|");
+            const pakeVideo = detailPanggilan[2] === "true";
+            sedangDalamPanggilan = true;
+            
+            // Simpan ID panggilan agar tidak berulang memicu konfirmasi yang sama
+            if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
+            const idCall = msg.pengirim + "_" + (msg.waktu || "");
+            window.panggilanTerlewati.push(idCall);
+
+            if (confirm(`Menerima panggilan ${pakeVideo ? 'Video' : 'Suara'} dari ${msg.pengirim}?`)) {
+              terimaPanggilanWebRTC(msg.pengirim, pakeVideo);
+            } else {
+              akhiriPanggilan(); // Kirim sinyal END jika ditolak
+            }
           }
         }
+        // ====================================================================
 
         if (msg.teks.startsWith("WEBRTC_SIGNAL:")) return;
 
@@ -503,8 +536,7 @@
         panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "END", JSON.stringify({ aksi: "close" })]);
       }
 
-      // Hentikan semua proses streaming lokal dan remote
-      sedangDalamPanggilan = false;
+      sedangDalamPanggilan = false; // Kunci agar loop data tidak membaca panggilan aktif lagi
       iceCandidatesAntrian = [];
       
       if (localStream) {
