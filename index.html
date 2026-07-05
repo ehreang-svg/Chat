@@ -142,17 +142,23 @@
     let akunSaya = "";
     let kontakAktif = "";
     let intervalOtomatis = null;
+    let intervalSinyalPanggilan = null; // Tambahan: Interval khusus saat menelepon
     let peerConnection = null;
     let localStream = null;
     let sedangDalamPanggilan = false;
     let jenisPanggilanGlobal = "video"; 
     let iceCandidatesAntrian = [];
+    if (!window.iceSudahDiproses) window.iceSudahDiproses = new Set(); // Tambahan: Filter duplikasi ICE
 
+    // Penambahan STUN server cadangan untuk menembus firewall provider lokal
     const konfigurasiRTC = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun.relay.metered.ca:443' }
+      ],
+      iceCandidatePoolSize: 10
     };
 
     async function panggilAPI(fungsi, parameterArray) {
@@ -205,6 +211,7 @@
 
     function logout() {
       if (intervalOtomatis) clearInterval(intervalOtomatis);
+      if (intervalSinyalPanggilan) clearInterval(intervalSinyalPanggilan);
       akunSaya = "";
       kontakAktif = "";
       document.getElementById('login-user').value = "";
@@ -224,10 +231,6 @@
         if (kontakAktif !== "") {
           await muatPesanChat(false);
           cekSinyalPanggilanMasukSecaraBerkala();
-        }
-        
-        if (sedangDalamPanggilan) {
-          cekSinyalBalasanMasuk();
         }
       } catch (e) {
         console.error("Error di loop otomatis:", e);
@@ -330,7 +333,6 @@
         if (!msgTerakhir) return;
 
         if (msgTerakhir.teks.startsWith("CALL_INVITE:") && msgTerakhir.pengirim.toLowerCase() === kontakAktif.toLowerCase()) {
-          
           if (!window.panggilanTerlewati) window.panggilanTerlewati = [];
           const idPanggilanUnik = msgTerakhir.pengirim + "_" + msgTerakhir.waktu;
           
@@ -424,9 +426,17 @@
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        panggilAPI("kirimPesanPribadi", [akunSaya, kontakAktif, `CALL_INVITE:|KamarWebRTC|${denganVideo}`]);
-        panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "OFFER", JSON.stringify(offer)]);
+        await panggilAPI("kirimPesanPribadi", [akunSaya, kontakAktif, `CALL_INVITE:|KamarWebRTC|${denganVideo}`]);
+        await panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "OFFER", JSON.stringify(offer)]);
+
+        // Perbaikan: Akselerasi pengecekan ANSWER dan ICE dari lawan bicara per 1.5 detik
+        intervalSinyalPanggilan = setInterval(() => {
+          cekSinyalBalasanMasuk();
+          DengarkanSinyalIceBerkala(kontakAktif);
+        }, 1500);
+
       } catch (err) {
+        console.error(err);
         akhiriPanggilan();
       }
     }
@@ -446,11 +456,18 @@
           await peerConnection.setRemoteDescription(new RTCSessionDescription(dataOffer));
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
-          panggilAPI("kirimSinyalWebRTC", [akunSaya, namaPenelpon, "ANSWER", JSON.stringify(answer)]);
+          await panggilAPI("kirimSinyalWebRTC", [akunSaya, namaPenelpon, "ANSWER", JSON.stringify(answer)]);
+          
           prosesAntrianIce();
-          DengarkanSinyalIceBerkala(namaPenelpon);
+
+          // Perbaikan: Jalankan pendengar sinyal konstan per 1.5 detik bagi sisi penerima
+          intervalSinyalPanggilan = setInterval(() => {
+            DengarkanSinyalIceBerkala(namaPenelpon);
+            cekSinyalBalasanMasuk();
+          }, 1500);
         });
       } catch (err) {
+        console.error(err);
         akhiriPanggilan();
       }
     }
@@ -458,7 +475,6 @@
     function buatPeerConnection() {
       peerConnection = new RTCPeerConnection(konfigurasiRTC);
       
-      // Pastikan track media ditambahkan dengan benar
       if (localStream) {
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
       }
@@ -471,7 +487,6 @@
         }
       };
 
-      // Optimasi pengiriman ICE: Kirim secepatnya ke server tanpa ditunda
       peerConnection.onicecandidate = (event) => {
         if (event.candidate && kontakAktif !== "") {
           panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "ICE", JSON.stringify(event.candidate)]);
@@ -479,12 +494,10 @@
       };
     }
 
-    // OPTIMASI: Mencari sinyal dari pesan PALING BARU (Mundur dari indeks terakhir)
     function ambilSinyalTerakhirDariSheet(dari, untuk, jenis, callback) {
       panggilAPI("ambilPesanPribadi", [dari, untuk]).then(dataPesan => {
         if (!dataPesan || !Array.isArray(dataPesan)) return;
         
-        // Loop terbalik (dari pesan terbaru ke lama) untuk kecepatan maksimum
         for (let i = dataPesan.length - 1; i >= 0; i--) {
           const msg = dataPesan[i];
           if (msg.pengirim.toLowerCase() === dari.toLowerCase() && msg.penerima.toLowerCase() === untuk.toLowerCase()) {
@@ -492,7 +505,7 @@
               try {
                 const dataMentahJson = msg.teks.split(`WEBRTC_SIGNAL:${jenis}|`)[1];
                 callback(JSON.parse(dataMentahJson));
-                break; // Hentikan pencarian jika sudah ketemu yang terbaru
+                break;
               } catch (e) {
                 console.error("Gagal parse sinyal:", e);
               }
@@ -501,9 +514,6 @@
         }
       });
     }
-
-    // OPTIMASI: Mencegah duplikasi ICE Candidate yang menyebabkan disconnect
-    if (!window.iceSudahDiproses) window.iceSudahDiproses = new Set();
 
     function DengarkanSinyalIceBerkala(lawanBicara) {
       if (!peerConnection || !sedangDalamPanggilan) return;
@@ -514,8 +524,6 @@
         dataPesan.forEach(msg => {
           if (msg.pengirim.toLowerCase() === lawanBicara.toLowerCase() && msg.teks.startsWith("WEBRTC_SIGNAL:ICE|")) {
             const dataMentah = msg.teks.split("WEBRTC_SIGNAL:ICE|")[1];
-            
-            // Buat kunci unik berdasarkan string data ICE agar tidak diproses dua kali
             const kunciIce = msg.waktu + "_" + dataMentah.substring(0, 30);
             
             if (!window.iceSudahDiproses.has(kunciIce)) {
@@ -546,7 +554,7 @@
 
     async function akhiriPanggilan() {
       if (sedangDalamPanggilan && kontakAktif !== "") {
-        panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "END", JSON.stringify({ aksi: "close" })]);
+        await panggilAPI("kirimSinyalWebRTC", [akunSaya, kontakAktif, "END", JSON.stringify({ aksi: "close" })]);
       }
       akhiriPanggilanMurniTanpaSinyal();
     }
@@ -571,9 +579,8 @@
           try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(dataAnswer));
             prosesAntrianIce();
-            DengarkanSinyalIceBerkala(kontakAktif);
           } catch (err) {
-            console.warn("Sinyal ANSWER diabaikan atau penutupan berbarengan: ", err.message);
+            console.warn("Sinyal ANSWER diabaikan: ", err.message);
           }
         });
       }
@@ -582,6 +589,12 @@
     function akhiriPanggilanMurniTanpaSinyal() {
       sedangDalamPanggilan = false;
       iceCandidatesAntrian = [];
+      window.iceSudahDiproses.clear(); // Reset filter duplikasi ICE
+      
+      if (intervalSinyalPanggilan) {
+        clearInterval(intervalSinyalPanggilan);
+        intervalSinyalPanggilan = null;
+      }
       
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
