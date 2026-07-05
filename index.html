@@ -217,7 +217,12 @@
 
     async function loopDataOtomatis() {
       if (!akunSaya) return;
+      
+      // Kirim sinyal ping ke server bahwa kita sedang aktif/online
+      panggilAPI("perbaruiStatusOnline", [akunSaya]);
+      
       refreshDaftarKontak();
+      
       if (kontakAktif !== "") {
         muatPesanChat(false);
       }
@@ -227,6 +232,7 @@
     }
 
     async function refreshDaftarKontak() {
+      // Sekarang API mengembalikan Array of Object [{nama, online, terakhirAktivitas}]
       const daftar = await panggilAPI("ambilKontak", [akunSaya]);
       renderKontak(daftar || []);
     }
@@ -238,28 +244,58 @@
         listEl.innerHTML = `<p class="text-center text-gray-400 text-xs p-4">Belum ada user lain terdaftar.</p>`;
         return;
       }
-      daftarKontak.forEach(nama => {
+      
+      daftarKontak.forEach(user => {
         const item = document.createElement('div');
-        const isAktif = nama === kontakAktif;
+        const isAktif = user.nama === kontakAktif;
+        
+        // Indikator Titik Hijau / Abu-abu untuk status online
+        const badgeStatus = user.online 
+          ? `<span class="w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white block absolute bottom-0 right-0"></span>`
+          : `<span class="w-2.5 h-2.5 bg-gray-400 rounded-full border border-white block absolute bottom-0 right-0"></span>`;
+          
+        const teksStatus = user.online 
+          ? `<span class="text-xs text-emerald-600 font-medium">Online</span>` 
+          : `<span class="text-xs text-gray-400">Offline</span>`;
+
+        // Update status sub-header chat secara real-time jika kontak ini sedang kita buka
+        if (isAktif) {
+          const subHeader = document.querySelector("#main-chat header p");
+          if (subHeader) {
+            subHeader.innerText = user.online ? "Online" : "Offline";
+            subHeader.className = user.online ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
+          }
+        }
+
         item.className = `flex items-center gap-3 p-3 cursor-pointer border-b border-gray-100 transition ${isAktif ? 'bg-gray-100' : 'hover:bg-gray-50'}`;
-        item.onclick = () => pilihKontakMembukaChat(nama);
+        item.onclick = () => pilihKontakMembukaChat(user.nama, user.online);
         item.innerHTML = `
-          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">${nama.charAt(0).toUpperCase()}</div>
+          <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 relative">
+            ${user.nama.charAt(0).toUpperCase()}
+            ${badgeStatus}
+          </div>
           <div class="flex-grow overflow-hidden">
-            <h4 class="font-semibold text-sm text-gray-800 truncate">${nama}</h4>
-            <p class="text-xs text-gray-400 truncate">Klik untuk chat pribadi...</p>
+            <div class="flex justify-between items-center">
+              <h4 class="font-semibold text-sm text-gray-800 truncate">${user.nama}</h4>
+            </div>
+            <p class="truncate">${teksStatus}</p>
           </div>`;
         listEl.appendChild(item);
       });
     }
 
-    // Navigasi Masuk Room Chat (Presisi Mobile)
-    function pilihKontakMembukaChat(namaTarget) {
+    function pilihKontakMembukaChat(namaTarget, apakahOnline) {
       kontakAktif = namaTarget;
       document.getElementById('nama-target').innerText = kontakAktif;
       document.getElementById('avatar-target').innerText = kontakAktif.charAt(0).toUpperCase();
       
-      // Logika Toggle View Layar Mobile
+      // Mengatur sub-header nama di room chat awal
+      const subHeader = document.querySelector("#main-chat header p");
+      if (subHeader) {
+        subHeader.innerText = apakahOnline ? "Online" : "Offline";
+        subHeader.className = apakahOnline ? "text-[10px] text-emerald-600 font-medium" : "text-[10px] text-gray-400";
+      }
+      
       document.getElementById('sidebar-kontak').classList.add('hidden', 'md:flex');
       const mainChat = document.getElementById('main-chat');
       mainChat.classList.remove('hidden');
@@ -271,6 +307,12 @@
       muatPesanChat(true);
     }
 
+    async function muatPesanChat(forceScroll) {
+      if (kontakAktif === "") return;
+      const dataPesan = await panggilAPI("ambilPesanPribadi", [akunSaya, kontakAktif]);
+      renderPesan(dataPesan || [], forceScroll);
+    }
+
     // Navigasi Kembali ke List Kontak (Presisi Mobile)
     function kembaliKeDaftarKontak() {
       kontakAktif = "";
@@ -280,11 +322,6 @@
       mainChat.classList.remove('flex');
     }
 
-    async function muatPesanChat(forceScroll) {
-      if (kontakAktif === "") return;
-      const dataPesan = await panggilAPI("ambilPesanPribadi", [akunSaya, kontakAktif]);
-      renderPesan(dataPesan || [], forceScroll);
-    }
 
     function renderPesan(daftarPesan, forceScroll) {
       const chatBox = document.getElementById('chat-box');
