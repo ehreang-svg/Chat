@@ -1,4 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WhatsApp Private Clone</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+    .bg-wa-green { background-color: #008069; }
+    .bg-wa-chat { background-color: #efeae2; }
+    .bg-wa-bubble-out { background-color: #d9fdd3; }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-gray-200 flex items-center justify-center font-sans antialiased h-full w-full">
 
+  <div id="login-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <div class="text-center mb-6">
+        <i class="fa-brands fa-whatsapp text-emerald-600 text-5xl mb-2"></i>
+        <h2 class="text-xl font-bold text-gray-800">Masuk ke WhatsApp</h2>
+        <p class="text-xs text-gray-500">Gunakan username & password Anda</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+          <input type="text" id="login-user" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-emerald-600" placeholder="Masukkan username">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+          <input type="password" id="login-pass" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-emerald-600" placeholder="Masukkan password">
+        </div>
+        <p id="login-error" class="text-xs text-red-500 hidden text-center"></p>
+        <button onclick="prosesLogin()" id="btn-login-submit" class="w-full bg-emerald-600 text-white font-medium py-2 rounded text-sm hover:bg-emerald-700 transition">
+          Masuk / Daftar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="call-modal" class="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50 hidden p-2 md:p-4">
+    <div class="bg-gray-900 w-full h-full md:h-auto md:max-w-3xl md:aspect-video rounded-none md:rounded-lg overflow-hidden shadow-2xl relative flex flex-col">
+      <div class="relative w-full flex-grow bg-black flex items-center justify-center overflow-hidden">
+        <video id="remote-video" autoplay playsinline webkit-playsinline class="w-full h-full object-cover"></video>
+        <video id="local-video" autoplay playsinline webkit-playsinline muted class="absolute bottom-4 right-4 w-1/3 max-w-[120px] aspect-video rounded-md border-2 border-white object-cover shadow-lg bg-gray-800"></video>
+      </div>
+      <div class="bg-gray-800 p-4 flex justify-between items-center text-white shrink-0">
+        <div class="flex flex-col">
+          <span id="call-status" class="text-xs md:text-sm font-medium text-emerald-400">Connecting...</span>
+          <span id="call-type" class="text-[10px] md:text-xs text-gray-400">Panggilan</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="toggleMuteAudio()" id="btn-mute-audio" class="bg-gray-700 hover:bg-gray-600 p-2 rounded-full w-10 h-10 transition">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button onclick="akhiriPanggilan()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-phone-slash"></i> Akhiri
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-container" class="w-full h-full md:max-w-6xl md:h-[92vh] bg-white flex rounded-none md:rounded-lg shadow-lg overflow-hidden hidden mobile-wrapper">
+    
+    <aside id="sidebar-kontak" class="w-full md:w-1/3 border-r border-gray-200 flex flex-col bg-white h-full shrink-0">
+      <div class="bg-gray-100 p-4 flex items-center justify-between border-b border-gray-200 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-sm" id="avatar-saya">Y</div>
+          <div>
+            <h2 class="font-bold text-sm text-gray-800 line-clamp-1" id="nama-saya">Memuat...</h2>
+            <p class="text-[11px] text-emerald-600 font-medium">Online</p>
+          </div>
+        </div>
+        <button onclick="logout()" class="text-gray-500 hover:text-red-600 p-2 rounded transition" title="Keluar">
+          <i class="fa-solid fa-right-from-bracket text-base"></i>
+        </button>
+      </div>
+      <div class="flex-grow overflow-y-auto" id="list-kontak">
+        <p class="text-center text-gray-400 text-xs p-4">Memuat daftar kontak...</p>
+      </div>
+    </aside>
+
+    <main id="main-chat" class="hidden md:flex w-full md:w-2/3 flex-col bg-wa-chat relative h-full">
+      
+      <div id="no-chat-screen" class="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-10 hidden md:flex">
+        <i class="fa-solid fa-comments text-gray-300 text-7xl mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-700">WhatsApp Web Private</h3>
+        <p class="text-gray-500 text-xs mt-1 max-w-sm">Pilih kontak di sebelah kiri untuk mulai mengobrol.</p>
+      </div>
+
+      <header class="bg-gray-100 px-3 py-3 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 shadow-sm">
+        <div class="flex items-center gap-2">
+          <button onclick="kembaliKeDaftarKontak()" class="block md:hidden text-gray-600 hover:text-emerald-700 pr-1 text-lg">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          
+          <div class="w-9 h-9 bg-gray-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" id="avatar-target">?</div>
+          <div>
+            <h2 class="font-bold text-sm text-gray-800 line-clamp-1" id="nama-target">Nama Kontak</h2>
+            <p class="text-[10px] text-gray-400">Offline</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-4 text-gray-600 pr-1">
+          <button onclick="mulaiPanggilan(false)" class="hover:text-emerald-700 transition" title="Panggilan Suara">
+            <i class="fa-solid fa-phone text-base"></i>
+          </button>
+          <button onclick="mulaiPanggilan(true)" class="hover:text-emerald-700 transition" title="Panggilan Video">
+            <i class="fa-solid fa-video text-base"></i>
+          </button>
+        </div>
+      </header>
+
+      <div id="chat-box" class="flex-grow overflow-y-auto p-4 space-y-3 flex flex-col bg-wa-chat"></div>
+
+      <footer class="bg-gray-100 px-3 py-2 flex items-center gap-2 border-t border-gray-200 shrink-0 relative">
+        <input type="file" id="input-file" class="hidden" onchange="unggahDanKirimFile(this)">
+        <button onclick="document.getElementById('input-file').click()" id="btn-lampiran" class="text-gray-500 hover:text-emerald-700 transition w-9 h-9 flex items-center justify-center shrink-0" title="Kirim Berkas">
+          <i class="fa-solid fa-paperclip text-lg"></i>
+        </button>
+        <input type="text" id="input-pesan" placeholder="Ketik pesan..." class="flex-grow bg-white py-2 px-3 rounded-lg text-sm focus:outline-none placeholder-gray-400 shadow-sm" onkeypress="cekEnter(event)">
+        <button id="btn-kirim" onclick="kirimPesan()" class="bg-wa-green text-white w-9 h-9 rounded-full flex items-center justify-center shadow hover:bg-emerald-800 transition shrink-0">
+          <i class="fa-solid fa-paper-plane text-xs ml-0.5"></i>
+        </button>
+      </footer>
+    </main>
+  </div>
+
+  <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyxfwqXaReK8TerSeXz9-LpvhhymTuS5es1ehsqSTTkKqE1_Ia3MW8vCEgF9-wqFxTx/exec";
 
     let akunSaya = "";
@@ -567,3 +705,6 @@
     }
 
     function cekEnter(e) { if (e.key === 'Enter') kirimPesan(); }
+</script>
+</body>
+</html>
